@@ -17,10 +17,10 @@
       {{ receipt_form.as_p }}
       <button class="button" type="submit">Scan and review receipt</button>
     </form>
+    {% if receipt_text %}<details><summary>Extracted receipt text</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere">{{ receipt_text }}</pre></details>{% endif %}
     {% if receipt_rows is not None %}
     <hr><h3>Review receipt items</h3>
     <p class="muted">Check quantities and unit prices against your receipt, including discounts and tax. Uncheck lines you do not want. Matching an item replaces its quantity and cost and marks it purchased. New items are also marked purchased.</p>
-    {% if receipt_text %}<details><summary>Extracted receipt text</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere">{{ receipt_text }}</pre></details>{% endif %}
     <form method="post">
       {% csrf_token %}<input type="hidden" name="action" value="confirm_receipt"><input type="hidden" name="receipt_token" value="{{ receipt_token }}">
       {{ receipt_rows.management_form }}{{ receipt_rows.non_form_errors }}

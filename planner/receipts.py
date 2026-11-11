@@ -37,7 +37,15 @@ def receipt_items(text):
     for line in text.splitlines():
         if re.search(r'\b(total|subtotal|vat|tax|change|cash|card|payment|discount|saving|balance)\b', line, re.I):
             continue
-        match = re.fullmatch(r'\s*(.+?)\s+[£$€]?\s*(\d{1,8}[.,]\d{2})\s*[A-Z]?\s*', line)
+        # OCR often inserts spaces around decimal marks or reads trailing tax
+        # codes as separate words. Some tills place a currency symbol after prices.
+        line = line.replace('\u00a0', ' ')
+        line = re.sub(r'(?<=\d)\s*([.,])\s*(?=\d{2}\b)', r'\1', line)
+        match = re.fullmatch(
+            r'\s*(.+?)\s*[£$€]?\s*(\d{1,8}(?:[ ,]\d{3})*[.,]\d{2})'
+            r'\s*(?:[£$€]|GBP|USD|EUR)?\s*[A-Z*]{0,2}\s*',
+            line,
+        )
         if not match:
             continue
         name, price = match.groups()
@@ -47,7 +55,7 @@ def receipt_items(text):
             quantity, name = int(qty[1]), qty[2]
         if not quantity or not re.search(r'[a-zA-Z]', name):
             continue
-        total = Decimal(price.replace(',', '.'))
+        total = Decimal(price.replace(' ', '').replace(',', '') if '.' in price else price.replace(' ', '').replace(',', '.'))
         items.append({'name': name[:160], 'quantity': quantity,
                       'unit_cost': (total / quantity).quantize(Decimal('.01'))})
         if len(items) == 50:

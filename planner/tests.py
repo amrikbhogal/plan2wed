@@ -454,3 +454,27 @@ class ReceiptTests(TestCase):
         self.assertContains(response, 'Upload a receipt photo.')
         self.assertNotContains(response, 'name="text"')
         self.assertFalse(self.event.shopping_items.exists())
+
+    def test_common_ocr_price_formats(self):
+        from .receipts import receipt_items
+        for line, expected in [
+            ('Candles12.50', '12.50'),
+            ('Candles 12 . 50 A', '12.50'),
+            ('Flowers 1,234.50 GBP', '1234.50'),
+            ('Flowers 1 234,50 €', '1234.50'),
+        ]:
+            with self.subTest(line=line):
+                rows = receipt_items(line)
+                self.assertEqual(len(rows), 1)
+                self.assertEqual(rows[0]['unit_cost'], Decimal(expected))
+        self.assertEqual(receipt_items('TOTAL 12.50\nVAT 2.50\nCARD 12.50'), [])
+
+    def test_unrecognised_prices_show_extracted_text_for_diagnosis(self):
+        from unittest.mock import patch
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        with patch('planner.views.scan_receipt', return_value='Candles unreadable price'):
+            response = self.client.post(self.url, {'action': 'scan_receipt', 'image': SimpleUploadedFile('receipt.png', b'example')})
+        self.assertContains(response, 'No item prices were found.')
+        self.assertContains(response, 'Extracted receipt text')
+        self.assertContains(response, 'Candles unreadable price')
+        self.assertFalse(self.event.shopping_items.exists())
