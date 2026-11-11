@@ -51,8 +51,16 @@ def scan_receipt(upload):
 def receipt_items(text):
     """Conservative suggestions: trailing line prices, with explicit quantity only."""
     items = []
+    pending_quantity = None
     for line in text.splitlines():
-        if re.search(r'\b(total|subtotal|vat|tax|change|cash|card|payment|discount|saving|balance)\b', line, re.I):
+        if re.search(r'\b(total|subtotal|vat|tax|change|cash|card|payment|discount|saving|balance)\b', line, re.I) or re.match(r'^\s*t\s*o\s*t\s*a\s*l\b', line, re.I):
+            pending_quantity = None
+            continue
+        # ALDI-style receipts put the quantity and unit price before the
+        # product line. Use the product's line total for the final cost.
+        quantity_line = re.fullmatch(r'\s*(\d{1,4})\s*[x×]\s+[£$€]?\s*\d+[.,]\d{2}\s*', line, re.I)
+        if quantity_line:
+            pending_quantity = int(quantity_line[1]) or None
             continue
         # OCR often inserts spaces around decimal marks or reads trailing tax
         # codes as separate words. Some tills place a currency symbol after prices.
@@ -64,9 +72,12 @@ def receipt_items(text):
             line,
         )
         if not match:
+            pending_quantity = None
             continue
         name, price = match.groups()
-        quantity = 1
+        name = re.sub(r'^\d{5,8}\s+', '', name)
+        quantity = pending_quantity or 1
+        pending_quantity = None
         qty = re.match(r'^(\d{1,4})\s*[x×]\s+(.+)$', name, re.I)
         if qty:
             quantity, name = int(qty[1]), qty[2]

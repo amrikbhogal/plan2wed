@@ -510,3 +510,43 @@ class ReceiptTests(TestCase):
         with patch('planner.receipts.subprocess.run', side_effect=recognise):
             text = scan_receipt(SimpleUploadedFile('phone.jpg', buffer.getvalue()))
         self.assertEqual(text, 'Candles 12.50')
+
+    def test_aldi_receipt_layout_preserves_quantities_and_total(self):
+        from .receipts import receipt_items
+        # Transcribed item lines from the supplied photo, not OCR output.
+        text = """ALDI STORES
+GBP
+755322 LED CANDLES 3.99 B
+582544 ASIAN SELECTION 1.49 A
+752666 ADHESIVE MIX 0.89 B
+585909 AA/AAA BATTERIES 2.49 B
+2 x 0.45
+625258 CHICKPEAS 0.90A
+417200 CHEESE DBL G/WENSL 1.75 A
+285988 LIMES 1.15 A
+759884 SS FUSIL/CONCHI 1.59 A
+383427 SUGAR DEMERARA 1.09 A
+339792 CARROTS 500G 0.55 A
+339914 RED ONIONS 0.59 A
+339808 COURGETTES 1.39 A
+273691 BABY CUCUMBERS 0.99 A
+339817 CUT CORIANDER 0.50 A
+340015 MUSHROOM CLSEDCUP 1.29 A
+2 x 0.16
+267186 BANANAS LOOSE 0.32 A
+339750 BABY SPINACH 1.09 A
+723367 LE PETIT 2.99 B
+T o t a l 25.05
+20 Items
+Card Sales GBP 25.05
+A 00.0% Net 14.69 Vat 0.00
+B 20.0% Net 8.63 Vat 1.73"""
+        rows = receipt_items(text)
+        self.assertEqual(len(rows), 18)
+        self.assertEqual(sum(row['quantity'] for row in rows), 20)
+        self.assertEqual(sum(row['unit_cost'] * row['quantity'] for row in rows), Decimal('25.05'))
+        self.assertEqual(rows[0]['name'], 'LED CANDLES')
+        self.assertEqual(rows[4]['quantity'], 2)
+        self.assertEqual(rows[4]['unit_cost'], Decimal('0.45'))
+        self.assertEqual(rows[15]['quantity'], 2)
+        self.assertEqual(rows[15]['unit_cost'], Decimal('0.16'))
