@@ -550,3 +550,24 @@ B 20.0% Net 8.63 Vat 1.73"""
         self.assertEqual(rows[4]['unit_cost'], Decimal('0.45'))
         self.assertEqual(rows[15]['quantity'], 2)
         self.assertEqual(rows[15]['unit_cost'], Decimal('0.16'))
+
+    def test_full_resolution_phone_photo_is_resized_for_ocr(self):
+        import io
+        from PIL import Image
+        from subprocess import CompletedProcess
+        from unittest.mock import patch
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .receipts import scan_receipt
+        buffer = io.BytesIO()
+        with Image.new('L', (4284, 5712), 'white') as image:
+            image.save(buffer, format='JPEG')
+
+        def recognise(command, **kwargs):
+            with Image.open(command[1]) as prepared:
+                self.assertLessEqual(max(prepared.size), 4000)
+                self.assertEqual(prepared.mode, 'L')
+            return CompletedProcess(command, 0, b'LED CANDLES 3.99 B', b'')
+
+        with patch('planner.receipts.subprocess.run', side_effect=recognise):
+            text = scan_receipt(SimpleUploadedFile('phone.jpg', buffer.getvalue()))
+        self.assertIn('LED CANDLES', text)

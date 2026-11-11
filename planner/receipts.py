@@ -20,8 +20,11 @@ def scan_receipt(upload):
         with warnings.catch_warnings():
             warnings.simplefilter('error', Image.DecompressionBombWarning)
             with Image.open(io.BytesIO(data)) as source:
-                if source.width * source.height > 24_000_000:
-                    raise ValidationError('This photo is too large to process. Resize it to 24 megapixels or less.')
+                if source.width * source.height > 50_000_000:
+                    raise ValidationError('This photo is too large to process. Resize it to 50 megapixels or less.')
+                # JPEG draft decoding reduces memory before full pixel loading.
+                source.draft('RGB', (4000, 4000))
+                source.thumbnail((4000, 4000))
                 prepared = ImageOps.exif_transpose(source)
                 # Composite transparency against paper white before greyscale OCR.
                 rgba = prepared.convert('RGBA')

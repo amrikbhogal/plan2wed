@@ -67,4 +67,4 @@ Check OCR availability under the application service account with
 
 Receipt OCR applies phone EXIF orientation, white-background greyscale contrast
 cleanup and automatic page orientation detection. Install requirements.txt before
-restarting the application after an update. Images are limited to 24 megapixels.
+restarting the application after an update. Images are limited to 50 megapixels and resized before OCR.
