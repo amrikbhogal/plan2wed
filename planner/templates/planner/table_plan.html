@@ -1,0 +1,25 @@
+{% extends 'planner/base.html' %}
+{% block title %}{{ event.name }} table plan · Plan2Wed{% endblock %}
+{% block content %}
+<main class="page dashboard">
+  <a class="muted" href="{% url 'event_detail' event.id %}">← Back to event</a>
+  <div class="heading-row"><div><div class="eyebrow" style="margin-top:20px">Seating arrangements</div><h1>{{ event.name }} table plan</h1><p class="muted">Create tables and seat your invited guests. Each guest has one place per event.</p></div><a class="button" href="{% url 'guest_list' %}?event={{ event.pk }}">Manage event guests</a></div>
+  {% for message in messages %}<p class="muted" role="status">{{ message }}</p>{% endfor %}
+  <div class="stats"><div class="stat"><div class="stat-label">Invited guests · excluding declined</div><div class="stat-value">{{ guest_count }}</div></div><div class="stat"><div class="stat-label">Guests seated</div><div class="stat-value">{{ seated_count }}</div></div><div class="stat"><div class="stat-label">Total seats</div><div class="stat-value">{{ seat_count }}</div></div></div>
+  <div class="seating-layout">
+    <section aria-labelledby="tables-heading"><h2 id="tables-heading">Your tables</h2><div class="seating-tables">
+      {% for table in tables %}<article class="card seating-table"><div class="seating-heading"><h2>{{ table.name }}</h2><span class="status-pill active">{{ table.seated_guests|length }} / {{ table.capacity }} seated</span></div><p class="muted">{{ table.available_seats }} seats available</p>{% if table.notes %}<p class="muted">{{ table.notes }}</p>{% endif %}<ul class="seating-guests">{% for guest in table.seated_guests %}<li>{{ guest }} <span class="muted">· {{ guest.get_rsvp_status_display }}</span></li>{% empty %}<li class="muted">No guests seated yet.</li>{% endfor %}</ul><div class="seating-actions"><a class="button" href="?edit={{ table.pk }}#table-form">Edit table &amp; guests</a><form method="post">{% csrf_token %}<input type="hidden" name="action" value="delete_table"><input type="hidden" name="table_id" value="{{ table.pk }}"><button class="status-select button-danger" type="submit">Delete table</button></form></div></article>{% empty %}<div class="card"><p class="muted">No tables yet. Add your first table below to start arranging guests.</p></div>{% endfor %}
+    </div></section>
+    <aside class="card unseated-panel"><h2>Unseated guests ({{ unseated_guests|length }})</h2><p class="muted">Choose guests when adding or editing a table.</p><ul class="seating-guests">{% for guest in unseated_guests %}<li>{{ guest }}</li>{% empty %}<li class="muted">Everyone invited has a table, or there are no eligible guests yet.</li>{% endfor %}</ul></aside>
+  </div>
+  <section class="card form-card" id="table-form"><h2>{% if editing_table %}Update table{% else %}Add a table{% endif %}</h2><form method="post" action="{% url 'table_plan' event.pk %}">{% csrf_token %}<input type="hidden" name="action" value="save_table">{% if editing_table %}<input type="hidden" name="table_id" value="{{ editing_table.pk }}">{% endif %}
+    <fieldset class="details-section"><legend>Table details</legend><div class="details-grid">{% include 'planner/includes/detail_field.html' with field=table_form.name %}{% include 'planner/includes/detail_field.html' with field=table_form.capacity %}{% include 'planner/includes/detail_field.html' with field=table_form.notes wide=True %}</div></fieldset>
+    <fieldset class="details-section"><legend>Seat your guests</legend>{% include 'planner/includes/detail_field.html' with field=table_form.guests %}</fieldset>
+    {% if table_form.non_field_errors %}<div class="form-error">{{ table_form.non_field_errors }}</div>{% endif %}
+    <div class="form-actions"><button type="submit" class="button">{% if editing_table %}Save table{% else %}Add table{% endif %}</button>{% if editing_table %}<a class="status-select" href="{% url 'table_plan' event.pk %}#table-form">Cancel</a>{% endif %}</div>
+  </form></section>
+</main>
+<style>
+.seating-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(240px,1fr);gap:24px;align-items:start}.seating-tables{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.seating-table{padding:22px;min-width:0}.seating-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.seating-heading h2{overflow-wrap:anywhere}.seating-guests{list-style:none;padding:0;margin:16px 0}.seating-guests li{padding:8px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}.seating-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px}.unseated-panel{margin-top:21px}.seating-table .muted,.unseated-panel .muted{font-size:13px}@media(max-width:960px){.seating-tables{grid-template-columns:1fr}}@media(max-width:650px){.seating-layout{grid-template-columns:1fr}.unseated-panel{margin-top:0}}
+</style>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends 'planner/base.html' %}
+{% block title %}{% if selected_event %}{{ selected_event.name }} guests{% else %}Guest list{% endif %} · Plan2Wed<style>.table-card td:last-child{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.table-card td:last-child form{margin:0!important}.table-card td:last-child .status-select{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:92px;min-height:40px;padding:7px 12px;white-space:nowrap}</style>
+{% endblock %}
+{% block content %}
+<main class="page dashboard">
+  <div class="heading-row"><div><a class="muted" href="{% if selected_event %}{% url 'event_detail' selected_event.id %}{% else %}{% url 'member_portal' %}#events{% endif %}" style="font-size:13px">← Back to {% if selected_event %}event{% else %}your wedding plan{% endif %}</a><div class="eyebrow" style="margin-top:20px">Wedding guests</div><h1>{% if selected_event %}{{ selected_event.name }} guests{% else %}Guest list{% endif %}</h1><p class="muted" style="margin:0">Manage guest contact details, invitations, and RSVPs{% if selected_event %} for this event{% endif %}.</p></div></div>
+  {% if selected_event %}<p class="muted" style="font-size:13px"><a href="{% url 'guest_list' %}">View all guests</a></p>{% endif %}
+  {% if messages %}{% for message in messages %}<p class="muted" role="status">{{ message }}</p>{% endfor %}{% endif %}
+  <section class="card" style="max-width:760px;margin-bottom:22px"><h2 style="margin:0 0 6px">Import guests from CSV</h2><p class="muted" style="font-size:13px;margin:0 0 14px">Upload a CSV exported from Outlook or another contacts app. Include a first name (or display name); email and phone are optional.{% if selected_event %} Imported guests will be assigned to {{ selected_event.name }}.{% endif %}</p><form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="action" value="import_guests"><input type="file" name="guest_file" accept=".csv,text/csv" required><button class="button" type="submit" style="margin-left:8px"><svg class="button-icon" aria-hidden="true"><use href="#icon-upload"></use></svg>Import CSV</button></form></section>
+  <section class="table-card">
+    {% if guests %}<table><thead><tr><th>Guest</th><th>Email</th><th>Phone</th><th>Events</th><th>RSVP</th><th>Notes</th><th></th></tr></thead><tbody>
+      {% for guest in guests %}<tr><td><strong>{{ guest.first_name }} {{ guest.last_name }}</strong></td><td>{{ guest.email|default:'—' }}</td><td>{{ guest.phone|default:'—' }}</td><td>{% for event in guest.events.all %}<span class="status-pill active">{{ event.name }}</span> {% empty %}—{% endfor %}</td><td><span class="status-pill {% if guest.rsvp_status == 'attending' %}active{% elif guest.rsvp_status == 'declined' %}inactive{% endif %}">{{ guest.get_rsvp_status_display }}</span></td><td>{{ guest.notes|default:'—' }}</td><td><a class="status-select" href="?{% if selected_event %}event={{ selected_event.id }}&amp;{% endif %}edit={{ guest.id }}#guest-form"><svg class="button-icon" aria-hidden="true"><use href="#icon-pencil"></use></svg>Edit</a><form method="post" style="display:inline">{% csrf_token %}<input type="hidden" name="action" value="delete_guest"><input type="hidden" name="guest_id" value="{{ guest.id }}"><button type="submit" class="status-select button-danger" aria-label="Delete {{ guest.first_name }}"><svg class="button-icon" aria-hidden="true"><use href="#icon-trash"></use></svg>Delete</button></form></td></tr>{% endfor %}
+    </tbody></table>{% else %}<div class="empty"><strong>{% if selected_event %}No guests assigned to this event{% else %}Your guest list is empty{% endif %}</strong>Add guests below and assign them to one or more events.</div>{% endif %}
+  </section>
+  <section id="guest-form" class="card form-card"><h2 style="margin:0 0 6px">{% if editing_guest %}Update guest{% else %}Add a guest{% endif %}</h2><form method="post">{% csrf_token %}<input type="hidden" name="action" value="{% if editing_guest %}update_guest{% else %}save_guest{% endif %}">{% if editing_guest %}<input type="hidden" name="guest_id" value="{{ editing_guest.id }}">{% endif %}
+<fieldset class="details-section"><legend>Guest details</legend><div class="details-grid">
+{% include 'planner/includes/detail_field.html' with field=guest_form.first_name %}
+{% include 'planner/includes/detail_field.html' with field=guest_form.last_name %}
+{% include 'planner/includes/detail_field.html' with field=guest_form.email %}
+{% include 'planner/includes/detail_field.html' with field=guest_form.phone %}
+</div></fieldset>
+<fieldset class="details-section"><legend>Invitations & RSVP</legend><div class="details-grid">
+{% include 'planner/includes/detail_field.html' with field=guest_form.rsvp_status %}
+{% include 'planner/includes/detail_field.html' with field=guest_form.events wide=True %}
+</div></fieldset>
+<fieldset class="details-section"><legend>Additional details</legend><div class="details-grid">
+{% include 'planner/includes/detail_field.html' with field=guest_form.notes wide=True %}
+</div></fieldset>
+
+    {% if guest_form.non_field_errors %}<div class="form-error">{{ guest_form.non_field_errors }}</div>{% endif %}
+    <div class="form-actions"><button class="button" type="submit"><svg class="button-icon" aria-hidden="true"><use href="{% if editing_guest %}#icon-save{% else %}#icon-person-plus{% endif %}"></use></svg>{% if editing_guest %}Save guest{% else %}Add guest{% endif %}</button>{% if editing_guest %} <a href="{% url 'guest_list' %}{% if selected_event %}?event={{ selected_event.id }}{% endif %}" class="status-select">Cancel</a>{% endif %}</div>
+  </form></section>
+</main>
+<style>.table-card td:last-child{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.table-card td:last-child form{margin:0!important}.table-card td:last-child .status-select{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:92px;min-height:40px;padding:7px 12px;white-space:nowrap}</style>
+{% endblock %}

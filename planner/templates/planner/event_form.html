@@ -1,0 +1,70 @@
+{% extends 'planner/base.html' %}
+{% block title %}{% if event %}Edit {{ event.name }}{% else %}Add an event{% endif %} · Plan2Wed{% endblock %}
+{% block content %}
+<main class="page dashboard">
+  <div class="heading-row"><div><a class="muted" href="{% if event %}{% url 'event_detail' event.id %}{% else %}{% url 'member_portal' %}#events{% endif %}" style="font-size:13px">← Back to your wedding plan</a><div class="eyebrow" style="margin-top:20px">Wedding plan</div><h1>{% if event %}Update event{% else %}Add an event{% endif %}</h1><p class="muted" style="margin:0">Track the event date, venue, and costs. Shopping list amounts will be included automatically.</p></div></div>
+  <section class="card form-card"><form method="post">{% csrf_token %}
+    {% for field in form %}
+    {% if field.name == 'name' %}<fieldset class="details-section"><legend>Event details</legend><div class="details-grid">{% elif field.name == 'other_spent' %}</div></fieldset><fieldset class="details-section"><legend>Costs &amp; notes</legend><div class="details-grid">{% endif %}
+    <div class="field{% if field.name == 'notes' or field.name == 'description' %} details-wide{% endif %}">
+      {% if field.name == 'guests' %}
+        <label>{{ field.label }}</label><button class="button guest-picker-trigger" type="button" onclick="document.getElementById('guest-picker-dialog').showModal()"><svg class="button-icon" aria-hidden="true"><use href="#icon-people"></use></svg><span id="guest-selection-summary">Choose guests</span></button><p class="muted" style="font-size:12px;margin:5px 0 0">Choose who is invited to this event.</p>
+        <dialog id="guest-picker-dialog" class="guest-picker-dialog" aria-labelledby="guest-picker-title"><div class="guest-picker-heading"><div><div class="eyebrow">Guest list</div><h2 id="guest-picker-title">Choose guests</h2></div><button type="button" class="guest-picker-close" aria-label="Close guest selection" onclick="document.getElementById('guest-picker-dialog').close()">&times;</button></div><p class="muted" style="font-size:13px">Search and select the guests invited to this event.</p><input id="guest-search" class="guest-search" type="search" placeholder="Search guests by name" autocomplete="off"><div class="guest-picker-actions"><button type="button" class="status-select" id="select-visible-guests"><svg class="button-icon" aria-hidden="true"><use href="#icon-check"></use></svg>Select visible</button><button type="button" class="status-select" id="clear-guests"><svg class="button-icon" aria-hidden="true"><use href="#icon-trash"></use></svg>Clear selection</button></div><div class="guest-picker-list" id="guest-picker-list">{{ field }}</div><div class="guest-picker-footer"><span class="muted" id="guest-picker-count" aria-live="polite"></span><button type="button" class="button" onclick="document.getElementById('guest-picker-dialog').close()"><svg class="button-icon" aria-hidden="true"><use href="#icon-check"></use></svg>Done</button></div></dialog>
+      {% else %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}
+        {% if field.name == 'name' %}<datalist id="wedding-event-suggestions">{% for suggestion in form.EVENT_SUGGESTIONS %}<option value="{{ suggestion }}">{% endfor %}</datalist><p class="muted" style="font-size:12px;margin:5px 0 0">Choose a suggested ceremony or enter your own event.</p>{% endif %}
+        {% if field.name == 'description' %}<p class="muted" style="font-size:12px">Suggested descriptions are editable. Punjabi customs vary between families and are distinct from the Sikh marriage ceremony.</p>{% endif %}
+        {% if field.name == 'venue' %}<p class="muted" style="font-size:12px;margin:5px 0 0">Need to add a venue? <a href="{% url 'venue_list' %}" style="color:var(--green);font-weight:600">Manage venues</a></p>{% endif %}
+      {% endif %}
+      {% if field.errors %}<ul class="errorlist">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+    </div>{% endfor %}</div></fieldset>
+    {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="form-actions"><button class="button" type="submit"><svg class="button-icon" aria-hidden="true"><use href="{% if event %}#icon-save{% else %}#icon-calendar{% endif %}"></use></svg>{% if event %}Save event{% else %}Add event{% endif %}</button><a href="{% if event %}{% url 'event_detail' event.id %}{% else %}{% url 'member_portal' %}#events{% endif %}" class="status-select">Cancel</a></div>
+  </form></section>
+</main>
+<style>.guest-picker-trigger{margin-top:4px}.guest-picker-dialog{position:fixed;inset:50% auto auto 50%;transform:translate(-50%,-50%);width:min(640px,calc(100% - 28px));max-height:calc(100dvh - 28px);overflow:hidden;margin:0;padding:24px;border:1px solid var(--line);border-radius:12px;background:var(--white);color:var(--ink);box-shadow:0 20px 70px #17251b40}.guest-picker-dialog::backdrop{background:#18231dcc;backdrop-filter:blur(2px)}.guest-picker-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.guest-picker-heading h2{margin:5px 0}.guest-picker-close{width:36px;height:36px;display:grid;place-items:center;flex:none;border:1px solid #eee;border-radius:50%;background:white;color:var(--muted);font:400 25px/1 'DM Sans',sans-serif;cursor:pointer}.guest-search{width:100%;height:44px;margin:8px 0;border:1px solid var(--line);border-radius:6px;padding:0 12px;font:14px 'DM Sans',sans-serif}.guest-picker-actions,.guest-picker-footer{display:flex;justify-content:space-between;align-items:center;gap:10px}.guest-picker-list{max-height:min(45dvh,420px);overflow:auto;margin:12px 0;padding:8px 12px;border:1px solid var(--line);border-radius:7px}.guest-picker-list .choice-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin:0;padding:0;list-style:none}.guest-picker-list .choice-list li{min-width:0}.guest-picker-list .choice-list label{font-size:13px;cursor:pointer}.guest-picker-footer{justify-content:flex-end}.guest-picker-footer .muted{margin-right:auto;font-size:12px}.guest-picker-close:focus,.guest-picker-close:focus-visible{outline:none;box-shadow:none;border:1px solid #eee}.guest-picker-dialog:focus{outline:none}@media(max-width:520px){.guest-picker-dialog{padding:18px}.guest-picker-list .choice-list{grid-template-columns:1fr}.guest-picker-list{max-height:42dvh}}
+</style>
+{{ form.EVENT_DESCRIPTIONS|json_script:"event-descriptions" }}
+<script>
+  const descriptions = JSON.parse(document.getElementById('event-descriptions').textContent);
+  const eventName = document.getElementById('id_name');
+  const description = document.getElementById('id_description');
+  let previousSuggestion = Object.entries(descriptions).find(([name]) => name.toLowerCase() === eventName.value.trim().toLowerCase())?.[1] || '';
+  eventName.addEventListener('input', () => {
+    const suggestion = Object.entries(descriptions).find(([name]) => name.toLowerCase() === eventName.value.trim().toLowerCase())?.[1] || '';
+    if (!description.value.trim() || description.value === previousSuggestion) description.value = suggestion;
+    previousSuggestion = suggestion;
+  });
+  const guestPickerDialog = document.getElementById('guest-picker-dialog');
+  const guestList = document.getElementById('id_guests');
+  const guestSearch = document.getElementById('guest-search');
+  const guestLabels = Array.from(guestList.querySelectorAll('label'));
+  const guestSummary = document.getElementById('guest-selection-summary');
+  const guestCount = document.getElementById('guest-picker-count');
+  function updateGuestSelection() {
+    const selectedCount = guestList.querySelectorAll('input:checked').length;
+    guestSummary.textContent = selectedCount ? `Choose guests (${selectedCount} selected)` : 'Choose guests';
+    guestCount.textContent = `${selectedCount} selected`;
+  }
+  function filterGuests() {
+    const search = guestSearch.value.trim().toLocaleLowerCase();
+    guestLabels.forEach(label => { label.closest('li').hidden = !label.textContent.toLocaleLowerCase().includes(search); });
+  }
+  guestList.addEventListener('change', updateGuestSelection);
+  guestSearch.addEventListener('input', filterGuests);
+  guestPickerDialog.addEventListener('click', event => { if (event.target === guestPickerDialog) guestPickerDialog.close(); });
+  guestPickerDialog.addEventListener('close', updateGuestSelection);
+  document.getElementById('select-visible-guests').addEventListener('click', () => {
+    guestLabels.forEach(label => { if (!label.closest('li').hidden) label.querySelector('input').checked = true; });
+    updateGuestSelection();
+  });
+  document.getElementById('clear-guests').addEventListener('click', () => {
+    guestList.querySelectorAll('input:checked').forEach(input => { input.checked = false; });
+    updateGuestSelection();
+  });
+  guestPickerDialog.addEventListener('close', () => { guestSearch.value = ''; filterGuests(); });
+  guestPickerDialog.addEventListener('beforetoggle', event => { if (event.newState === 'open') setTimeout(() => guestSearch.focus(), 0); });
+  updateGuestSelection();
+  {% if form.guests.errors %}guestPickerDialog.showModal();{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'planner/base.html' %}
+{% block title %}{{ event.name }} shopping list · Plan2Wed{% endblock %}
+{% block content %}
+<main class="page dashboard">
+  <div class="heading-row"><div><a class="muted" href="{% url 'event_detail' event.id %}" style="font-size:13px">← Back to event</a><div class="eyebrow" style="margin-top:20px">Wedding event</div><h1>{{ event.name }}</h1><p class="muted" style="margin:0">{% if event.event_date %}{{ event.event_date|date:'F j, Y' }} · {% endif %}Shopping list for this event.</p></div></div>
+  <section class="stats"><div class="stat"><div class="stat-label">Purchased total · counted as spent</div><div class="stat-value">{{ purchased_total|floatformat:2 }}</div></div><div class="stat"><div class="stat-label">To buy · counted as pending</div><div class="stat-value">{{ pending_total|floatformat:2 }}</div></div></section>
+  <section class="table-card">
+    {% if items %}<table><thead><tr><th>Item</th><th>Qty</th><th>Unit cost</th><th>Total</th><th>Supplier</th><th>Notes</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+      {% for item in items %}<tr><td><strong>{% if item.is_purchased %}<s style="color:#898e88">{{ item.name }}</s>{% else %}{{ item.name }}{% endif %}</strong></td><td>{{ item.quantity }}</td><td><span class="money-value">{{ item.unit_cost|floatformat:2 }}</span></td><td><strong class="money-value">{{ item.total_cost|floatformat:2 }}</strong></td><td>{% if item.supplier_name %}<strong>{{ item.supplier_name }}</strong>{% if item.supplier_contact %}<br>{{ item.supplier_contact }}{% endif %}{% if item.supplier_email %}<br><a class="email" href="mailto:{{ item.supplier_email }}">{{ item.supplier_email }}</a>{% endif %}{% if item.supplier_phone %}<br>{{ item.supplier_phone }}{% endif %}{% if item.supplier_website %}<br><a class="email" href="{{ item.supplier_website }}" target="_blank" rel="noopener">Website</a>{% endif %}{% else %}—{% endif %}</td><td>{{ item.notes|default:'—' }}</td><td><span class="status-pill {% if item.is_purchased %}active{% else %}pending{% endif %}">{% if item.is_purchased %}Purchased{% else %}To buy{% endif %}</span></td><td><a class="status-select" href="?edit_item={{ item.id }}#item-form"><svg class="button-icon" aria-hidden="true"><use href="#icon-pencil"></use></svg>Edit</a> <form method="post" style="display:inline">{% csrf_token %}<input type="hidden" name="action" value="toggle_item"><input type="hidden" name="item_id" value="{{ item.id }}"><button type="submit" class="status-select"><svg class="button-icon" aria-hidden="true"><use href="{% if item.is_purchased %}#icon-plus{% else %}#icon-check{% endif %}"></use></svg>{% if item.is_purchased %}Mark to buy{% else %}Mark purchased{% endif %}</button></form> <form method="post" style="display:inline"><input type="hidden" name="action" value="delete_item"><input type="hidden" name="item_id" value="{{ item.id }}">{% csrf_token %}<button type="submit" class="status-select button-danger" aria-label="Delete {{ item.name }}"><svg class="button-icon" aria-hidden="true"><use href="#icon-trash"></use></svg>Delete</button></form></td></tr>{% endfor %}
+    </tbody></table>{% else %}<div class="empty"><strong>Your list is empty</strong>Add the items you need for this event below.</div>{% endif %}
+  </section>
+  <section id="item-form" class="card form-card"><h2 style="margin:0 0 6px">{% if editing_item %}Edit item{% else %}Add to the list{% endif %}</h2><form method="post">{% csrf_token %}<input type="hidden" name="action" value="{% if editing_item %}update_item{% else %}add_item{% endif %}">{% if editing_item %}<input type="hidden" name="item_id" value="{{ editing_item.id }}">{% endif %}
+<fieldset class="details-section"><legend>Item & cost</legend><div class="details-grid">
+{% include 'planner/includes/detail_field.html' with field=item_form.name %}
+{% include 'planner/includes/detail_field.html' with field=item_form.quantity %}
+{% include 'planner/includes/detail_field.html' with field=item_form.unit_cost %}
+{% include 'planner/includes/detail_field.html' with field=item_form.notes %}
+</div></fieldset>
+<fieldset class="details-section"><legend>Supplier details</legend><div class="details-grid">
+{% include 'planner/includes/detail_field.html' with field=item_form.supplier_name %}
+{% include 'planner/includes/detail_field.html' with field=item_form.supplier_contact %}
+{% include 'planner/includes/detail_field.html' with field=item_form.supplier_email %}
+{% include 'planner/includes/detail_field.html' with field=item_form.supplier_phone %}
+{% include 'planner/includes/detail_field.html' with field=item_form.supplier_website %}
+</div></fieldset>
+
+    <p class="muted" style="font-size:13px">Line total: <strong class="money-value" id="line-total">0.00</strong> <span id="cost-currency-note">(quantity × cost per item)</span></p>
+    <div class="form-actions"><button class="button" type="submit"><svg class="button-icon" aria-hidden="true"><use href="{% if editing_item %}#icon-save{% else %}#icon-plus{% endif %}"></use></svg>{% if editing_item %}Save changes{% else %}Add item{% endif %}</button>{% if editing_item %} <a class="status-select" href="{% url 'event_shopping_list' event.id %}">Cancel</a>{% endif %}</div>
+  </form></section>
+</main>
+<script>
+  const quantityInput = document.getElementById('id_quantity');
+  const unitCostInput = document.getElementById('id_unit_cost');
+  const lineTotal = document.getElementById('line-total');
+  function updateLineTotal() {
+    const quantity = Math.max(0, Number(quantityInput.value) || 0);
+    const unitCost = Math.max(0, Number(unitCostInput.value) || 0);
+    lineTotal.textContent = (quantity * unitCost).toFixed(2);
+  }
+  quantityInput.addEventListener('input', updateLineTotal);
+  unitCostInput.addEventListener('input', updateLineTotal);
+  updateLineTotal();
+</script>
+{% endblock %}

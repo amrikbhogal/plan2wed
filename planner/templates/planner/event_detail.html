@@ -1,0 +1,22 @@
+{% extends 'planner/base.html' %}
+{% block title %}{{ event.name }} · Plan2Wed{% endblock %}
+{% block content %}
+<main class="page dashboard">
+  <a class="muted" href="{% url 'member_portal' %}#events">← Back to your wedding plan</a>
+  <div class="eyebrow" style="margin-top:24px">Wedding event</div>
+  <h1>{{ event.name }}</h1>
+  <p class="muted">{{ event.event_date|date:'l, j F Y'|default:'Date not set' }}</p>
+  <section class="card" style="margin:20px 0" aria-labelledby="event-description-heading"><h2 id="event-description-heading">Description</h2>{% if event.description %}<p style="white-space:pre-line;overflow-wrap:anywhere">{{ event.description }}</p>{% with source=event.description_source %}{% if source %}<p class="muted" style="font-size:12px">Summary adapted from <a href="{{ source.url }}" target="_blank" rel="noopener noreferrer">{{ source.label }}</a>. Punjabi customs vary by family; they are distinct from the Anand Karaj.</p>{% endif %}{% endwith %}{% else %}<p class="muted">No description added yet.</p><a href="{% url 'event_edit' event.id %}">Add a description</a>{% endif %}</section>
+  <nav class="event-actions" aria-label="Event actions"><a class="status-select" href="{% url 'event_shopping_list' event.id %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-bag"></use></svg>Shopping list ({{ event.shopping_items.count }})</a> <a class="status-select" href="{% url 'guest_list' %}?event={{ event.id }}"><svg class="button-icon" aria-hidden="true"><use href="#icon-people"></use></svg>Guests ({{ event.guests.count }})</a> <a class="status-select" href="{% url 'table_plan' event.id %}">Table plan</a> <a class="status-select" href="{% url 'event_edit' event.id %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-pencil"></use></svg>Edit</a> <form method="post">{% csrf_token %}<input type="hidden" name="action" value="delete_event"><input type="hidden" name="event_id" value="{{ event.id }}"><button type="submit" class="status-select button-danger" aria-label="Delete {{ event.name }}"><svg class="button-icon" aria-hidden="true"><use href="#icon-trash"></use></svg>Delete</button></form></nav>
+  <div class="stats event-stats">
+    <div class="stat"><div class="stat-label">Spent</div><div class="stat-value">{{ event.spent|floatformat:2 }}</div></div>
+    <div class="stat"><div class="stat-label">Pending expenses</div><div class="stat-value">{{ event.pending|floatformat:2 }}</div></div>
+  </div>
+  <section class="card"><h2>Venue</h2>{% if event.venue %}<p><strong>{{ event.venue.name }}</strong></p>{% if event.venue.address %}<p class="muted">{{ event.venue.address }}</p>
+  <iframe class="venue-map" title="Map showing {{ event.venue.name }}" src="https://www.google.com/maps?q={{ event.venue.address|urlencode:'' }}&amp;output=embed" loading="lazy" referrerpolicy="no-referrer" allowfullscreen></iframe>
+  <p><a class="status-select" href="https://www.google.com/maps/search/?api=1&amp;query={{ event.venue.address|urlencode:'' }}" target="_blank" rel="noopener noreferrer">Open in Google Maps ↗</a></p>
+  {% else %}<p class="muted">Add an address to this venue to show its location on the map.</p><p><a href="{% url 'venue_list' %}?edit={{ event.venue.id }}">Update venue address</a></p>{% endif %}{% else %}<p class="muted">No venue selected yet.</p>{% endif %}
+  {% if event.notes %}<h2>Notes</h2><p style="white-space:pre-line">{{ event.notes }}</p>{% endif %}</section>
+</main>
+<style>.venue-map{display:block;width:100%;height:340px;border:1px solid var(--line);border-radius:8px;margin-top:16px}.event-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:24px 0}.event-actions form{margin:0}.event-actions .status-select{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:8px 14px}.event-stats{grid-template-columns:repeat(2,minmax(0,1fr))}@media(max-width:480px){.event-actions>*{flex:1 1 140px}.event-actions form button{width:100%}}</style>
+{% endblock %}

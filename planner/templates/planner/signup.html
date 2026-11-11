@@ -1,0 +1,126 @@
+{% extends 'planner/base.html' %}
+{% block title %}Join Plan2Wed{% endblock %}
+{% block home_nav %}{% endblock %}
+{% block signin_nav %}{% endblock %}
+{% block body_class %}heritage-home{% endblock %}
+{% block content %}
+<main class="page">
+  <div class="signup-layout">
+    <section class="signup-copy">
+      <div class="heritage-flourish" aria-hidden="true"><span></span><svg viewBox="0 0 64 44" focusable="false"><path d="M32 38C17 32 12 20 17 12c8 1 13 8 15 16 2-8 7-15 15-16 5 8 0 20-15 26ZM32 28C22 19 24 9 32 3c8 6 10 16 0 25ZM22 35C10 37 3 30 3 22c8-2 14 3 19 13Zm20 0c12 2 19-5 19-13-8-2-14 3-19 13ZM12 41h40"/></svg><span></span></div>
+      <div class="eyebrow">Your day, thoughtfully planned</div>
+      <h1>Make room for the moments that matter.</h1>
+      <p class="muted intro">Thoughtfully created for Sikh weddings, Plan2Wed brings together the celebrations, family, and details surrounding your Anand Karaj. From the joy of your Jaggo and the colour of your Mehndi to the ceremony at the Gurdwara and the meal that follows, make space for the traditions and moments that matter to you.</p>
+      <p class="muted intro">Whether you’re planning as a couple or with the support of family and friends, keep your events, venues, guest lists, seating arrangements, and shopping in one calm, considered place. Follow your budget as plans take shape, bring each celebration together at your own pace, and spend more time looking forward to sharing it all with the people you love.</p>
+      <p class="muted signup-future">Beginning with Sikh weddings, we’re building towards a home for other religious wedding traditions too—with space for the customs and moments that matter to you.</p>
+      <div class="benefit"><div class="benefit-icon">✓</div><div><strong>Keep your budget up to date</strong><br>See what you’ve spent, what’s pending, and what’s left to plan.</div></div>
+      <div class="benefit"><div class="benefit-icon">♡</div><div><strong>Stay on top of shopping lists</strong><br>Organize items by event and keep costs reflected in your budget.</div></div>
+      <div class="benefit"><div class="benefit-icon">✦</div><div><strong>Keep the details together</strong><br>Track wedding dates, guests, venues, and plans in one place.</div></div>
+    </section>
+    <section class="signup-action" aria-labelledby="membership-title">
+      <svg class="membership-arch" viewBox="0 0 430 600" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <defs><linearGradient id="membership-arch-fill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffdf5"/><stop offset="1" stop-color="#f0f3ec"/></linearGradient></defs>
+        <path d="M215 8 C203 30 177 34 166 59 C142 52 116 71 119 96 C88 88 60 112 68 140 C36 138 19 167 29 194 C15 207 10 223 10 247 L10 576 Q10 590 24 590 L406 590 Q420 590 420 576 L420 247 C420 223 415 207 401 194 C411 167 394 138 362 140 C370 112 342 88 311 96 C314 71 288 52 264 59 C253 34 227 30 215 8 Z" fill="url(#membership-arch-fill)" stroke="#b89a57" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+      </svg>
+      <div class="membership-ornament" aria-hidden="true">♡</div>
+      <div class="eyebrow">A beautiful beginning</div>
+      <h2 id="membership-title">Your next chapter<br>starts here.</h2>
+      <p class="muted membership-intro">Bring your ideas, your plans, and your favourite people together. Create a little space for the day you’ll always remember.</p>
+      <button class="button signup-open" type="button" onclick="document.getElementById('signup-dialog').showModal()"><svg class="button-icon" aria-hidden="true"><use href="#icon-person-plus"></use></svg>Create your membership</button>
+      {% if not user.is_authenticated %}<p class="membership-signin">Already created your membership? <a href="{% url 'login' %}">Sign in</a></p>{% endif %}
+      <p class="membership-note">For couples and those helping make it happen.</p>
+    </section>
+  </div>
+  <dialog id="signup-dialog" class="signup-dialog" aria-labelledby="signup-dialog-title">
+    <section class="card">
+      <div class="signup-dialog-heading"><div><div class="eyebrow">Get started</div><h2 id="signup-dialog-title">Create your membership</h2></div><button type="button" class="dialog-close" aria-label="Close join form" onclick="document.getElementById('signup-dialog').close()"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button></div>
+      <p class="muted" style="font-size:13px;margin:0">Are you one of the couple, or planning on their behalf? Choose a shared couple login or an individual planner login.</p>
+      {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
+      <form method="post" novalidate>{% csrf_token %}
+        <div class="field"><label for="{{ form.signup_role.id_for_label }}">{{ form.signup_role.label }}</label>{{ form.signup_role }}{{ form.signup_role.errors }}</div>
+<div class="details-grid couple-details"><fieldset class="details-section"><legend>Bride’s details</legend><div class="signup-contact-fields">
+{% include 'planner/includes/detail_field.html' with field=form.bride_name %}
+{% include 'planner/includes/detail_field.html' with field=form.bride_email %}
+{% include 'planner/includes/detail_field.html' with field=form.bride_phone %}
+</div></fieldset>
+<fieldset class="details-section"><legend>Groom’s details</legend><div class="signup-contact-fields">
+{% include 'planner/includes/detail_field.html' with field=form.groom_name %}
+{% include 'planner/includes/detail_field.html' with field=form.groom_email %}
+{% include 'planner/includes/detail_field.html' with field=form.groom_phone %}
+</div></fieldset>
+</div><fieldset class="details-section"><legend>Account contact</legend><div class="details-grid">
+{% include 'planner/includes/detail_field.html' with field=form.first_name %}
+{% include 'planner/includes/detail_field.html' with field=form.last_name %}
+{% include 'planner/includes/detail_field.html' with field=form.email %}
+{% include 'planner/includes/detail_field.html' with field=form.phone %}
+</div></fieldset>
+<fieldset class="details-section"><legend>Password</legend><div class="details-grid">
+{% include 'planner/includes/detail_field.html' with field=form.password1 %}
+{% include 'planner/includes/detail_field.html' with field=form.password2 %}
+</div></fieldset>
+        <button class="button full" type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-person-plus"></use></svg>Create our membership</button>
+        <p class="fineprint">By joining, you agree to receive updates about your Plan2Wed account. We’ll only use your details to help you plan.</p>
+      </form>
+    </section>
+  </dialog>
+</main>
+<style>.signup-future{max-width:430px;margin:20px 0 0;padding-left:16px;border-left:2px solid #ccd8c8;font-size:13px}
+.signup-action{position:relative;isolation:isolate;align-self:center;justify-self:end;width:100%;padding:145px 38px 42px;text-align:center}
+.membership-arch{position:absolute;inset:0;z-index:-1;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 14px 22px #26392b12)}
+.membership-ornament{display:grid;place-items:center;width:48px;height:48px;margin:0 auto 22px;border:1px solid #ccd8c8;border-radius:50%;color:var(--green);font:26px 'Playfair Display',serif}
+.signup-action .eyebrow{letter-spacing:2px}
+.signup-action h2{font-size:34px;line-height:1.2;margin:14px 0 18px}
+.membership-intro{max-width:310px;margin:0 auto;font-size:14px}
+.signup-open{margin-top:26px;min-height:46px;max-width:100%;padding-inline:20px;box-shadow:0 7px 18px #416b5826}
+.membership-note{margin:16px 0 0;color:var(--muted);font-size:11px;line-height:1.6}
+.membership-signin{margin:18px 0 0;color:var(--muted);font-size:13px;line-height:1.7}
+.membership-signin a{display:inline-block;color:var(--green);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.membership-signin a:hover{color:var(--ink)}
+.membership-signin a:focus-visible{outline:2px solid var(--green);outline-offset:4px;border-radius:2px}
+@media(max-width:760px){.signup-action{justify-self:center;max-width:430px;padding:140px 32px 38px}.signup-action h2{font-size:30px}}
+.signup-dialog{position:fixed;inset:50% auto auto 50%;transform:translate(-50%,-50%);width:min(900px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow-y:auto;margin:0;padding:0;border:1px solid #e8e9e2;border-radius:18px;background:var(--white);color:var(--ink);box-shadow:0 28px 90px #17251b55;scrollbar-width:thin;scrollbar-color:#cbd5cc transparent}
+.signup-dialog::backdrop{background:#18231dcc;backdrop-filter:blur(4px)}
+.signup-dialog .card{border:0;border-radius:18px;box-shadow:none;padding:30px 34px}
+.signup-dialog-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:18px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+.signup-dialog-heading .eyebrow{letter-spacing:2px}
+.signup-dialog-heading h2{margin:5px 0 0;font-size:28px}
+.signup-dialog-heading .dialog-close{position:static;flex:none;width:36px;height:36px;display:grid;place-items:center;padding:0;border:1px solid #eee;border-radius:50%;background:#fff;color:#5f6368;font-size:inherit;line-height:1;box-shadow:none} .signup-dialog-heading .dialog-close svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}.signup-dialog-heading .dialog-close:hover{background:#f7f7f7;color:var(--ink)}.signup-dialog-heading .dialog-close:focus,.signup-dialog-heading .dialog-close:focus-visible{outline:none;box-shadow:none;border:1px solid #eee}
+.signup-dialog>section>p.muted{font-size:14px!important;max-width:560px;line-height:1.6}
+.signup-dialog h3{font-size:11px!important;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);padding-top:17px;border-top:1px solid #eceee9}
+.signup-dialog form>.field:first-child{margin-top:18px}
+.signup-dialog .field{margin-top:13px}
+.signup-dialog .field label{font-size:12px;color:#515b53}
+.signup-dialog .field input,.signup-dialog .field select{height:44px;border:1px solid #dfe3dc;border-radius:7px;background:#fff;padding:0 12px;font:14px 'DM Sans',sans-serif;transition:border-color .15s,box-shadow .15s}
+.signup-dialog .field input:focus,.signup-dialog .field select:focus{border-color:var(--green);box-shadow:0 0 0 3px #416b5817;outline:0}
+.signup-dialog .name-fields{gap:15px}
+.signup-dialog .button.full{min-height:46px;margin-top:24px;box-shadow:0 7px 18px #416b5826}
+.signup-dialog .fineprint{font-size:11px;line-height:1.6;margin-top:12px}
+.signup-dialog:focus{outline:none}.signup-dialog .details-section .field{margin-top:0}.signup-contact-fields{display:grid;gap:16px}
+@media(max-width:520px){.signup-open{margin-top:24px}.signup-dialog{width:calc(100% - 18px);max-height:calc(100dvh - 18px);border-radius:14px}.signup-dialog .card{padding:22px 18px}.signup-dialog-heading h2{font-size:24px}.signup-dialog .name-fields{grid-template-columns:1fr;gap:0}}
+
+.heritage-home{--cream:#fbf6ec;--ink:#34352c;--muted:#6d6b60;--line:#e7dcc7;--green:#426050;background:radial-gradient(ellipse at 95% 18%,#edd6a533,transparent 48%),var(--cream)}
+.heritage-home .topbar{background:#fffdf8;border-bottom:1px solid #c5a56566;box-shadow:0 3px 18px #83683208}
+.heritage-home .topbar:after{content:"";position:absolute;bottom:-5px;left:0;right:0;height:3px;border-bottom:1px solid #c5a56533;pointer-events:none}
+.heritage-home .signup-layout{gap:64px}
+.heritage-home .signup-copy h1{font-size:48px;line-height:1.16;color:#344d40;margin:16px 0 24px}
+.heritage-home .signup-copy .intro{font-size:15px;line-height:1.85}
+.heritage-home .signup-copy>.eyebrow{color:#816327;letter-spacing:2.5px}
+.heritage-flourish{display:flex;align-items:center;gap:16px;width:190px;margin:0 0 24px;color:#ad8a45}
+.heritage-flourish span{flex:1;height:1px;background:currentColor;opacity:.55}
+.heritage-flourish svg{width:54px;height:40px;fill:none;stroke:currentColor;stroke-width:1.1;stroke-linejoin:round;stroke-linecap:round}
+.heritage-home .benefit{line-height:1.7;color:#666559}
+.heritage-home .benefit strong{color:#344d40;font-weight:500}
+.heritage-home .benefit-icon{background:#f4ecd9;border:1px solid #d8c498;color:#876a32}
+.heritage-home .signup-future{border-color:#bd9d60;color:#746b57;font-style:italic}
+.heritage-home .membership-ornament{border-color:#c7ad75;color:#987635;background:#fffaf0;outline:1px solid #d9c89f66;outline-offset:5px}
+.heritage-home .signup-action .eyebrow{color:#816327}
+.heritage-home .signup-action h2{color:#344d40}
+.heritage-home .signup-open{background:#426050;color:#fffdf5;border-color:#426050;border-radius:5px;box-shadow:0 6px 16px #344d401c,inset 0 0 0 3px #ffffff12}
+.heritage-home .signup-open:hover{background:#304b3c;border-color:#304b3c}
+.heritage-home .signup-dialog{border-color:#d8c498}
+@media(max-width:760px){.heritage-home .signup-layout{gap:36px}.heritage-home .signup-copy h1{font-size:36px}.heritage-flourish{margin-bottom:20px}}
+@media(max-width:480px){.heritage-home .signup-copy h1{font-size:32px}}
+</style>
+{% if form.errors %}<script>document.getElementById('signup-dialog').showModal();</script>{% endif %}
+<script>const signupDialog=document.getElementById('signup-dialog');signupDialog.addEventListener('click',function(event){if(event.target===this)this.close();});</script>
+{% endblock %}

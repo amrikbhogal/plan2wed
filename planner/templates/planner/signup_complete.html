@@ -1,0 +1,5 @@
+{% extends 'planner/base.html' %}
+{% block title %}You’re on the list · Plan2Wed{% endblock %}
+{% block content %}
+<main class="page success-wrap"><section class="success"><div class="success-mark">✓</div><div class="eyebrow">Registration received</div><h1>Thanks for joining Plan2Wed.</h1>{% if signup_role == 'representative' %}<p class="muted">A single login has been created for you, with the wedding plan attached to your account. A team member will activate it shortly. Once active, sign in with your email and password.</p>{% else %}<p class="muted">Your joint membership has been created for both partners. A team member will activate it shortly. Once active, use your shared login email and password to access the wedding dashboard together.</p>{% endif %}<a class="button" href="{% url 'login' %}" style="margin-top:15px"><svg class="button-icon" aria-hidden="true"><use href="#icon-door"></use></svg>Go to Sign In</a></section></main>
+{% endblock %}

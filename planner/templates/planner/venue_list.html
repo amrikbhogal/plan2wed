@@ -1,0 +1,31 @@
+{% extends 'planner/base.html' %}
+{% block title %}Venues · Plan2Wed<style>.table-card td:last-child{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.table-card td:last-child form{margin:0!important}.table-card td:last-child .status-select{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:92px;min-height:40px;padding:7px 12px;white-space:nowrap}</style>
+{% endblock %}
+{% block content %}
+<main class="page dashboard">
+  <div class="heading-row"><div><a class="muted" href="{% url 'member_portal' %}#events" style="font-size:13px">← Back to your wedding plan</a><div class="eyebrow" style="margin-top:20px">Wedding plan</div><h1>Venues</h1><p class="muted" style="margin:0">Save venue details and assign a venue to each wedding event.</p></div><a class="button" href="#venue-form"><svg class="button-icon" aria-hidden="true"><use href="#icon-plus"></use></svg>Add a venue</a></div>
+  <section class="table-card">
+    {% if venues %}<table><thead><tr><th>Venue</th><th>Address</th><th>Contact</th><th>Phone / email</th><th>Website</th><th>Used for</th><th></th></tr></thead><tbody>
+      {% for venue in venues %}<tr><td><strong>{{ venue.name }}</strong></td><td>{{ venue.address|default:'—' }}</td><td>{{ venue.contact_name|default:'—' }}</td><td>{% if venue.phone %}{{ venue.phone }}{% endif %}{% if venue.phone and venue.email %}<br>{% endif %}{% if venue.email %}<a class="email" href="mailto:{{ venue.email }}">{{ venue.email }}</a>{% endif %}{% if not venue.phone and not venue.email %}—{% endif %}</td><td>{% if venue.website %}<a class="email" href="{{ venue.website }}" target="_blank" rel="noopener">Website</a>{% else %}—{% endif %}</td><td>{% for event in venue.events.all %}<span class="status-pill active">{{ event.name }}</span> {% empty %}—{% endfor %}</td><td><a class="status-select" href="?edit={{ venue.id }}#venue-form"><svg class="button-icon" aria-hidden="true"><use href="#icon-pencil"></use></svg>Edit</a><form method="post" style="display:inline">{% csrf_token %}<input type="hidden" name="action" value="delete_venue"><input type="hidden" name="venue_id" value="{{ venue.id }}"><button type="submit" class="status-select button-danger" aria-label="Delete {{ venue.name }}"><svg class="button-icon" aria-hidden="true"><use href="#icon-trash"></use></svg>Delete</button></form></td></tr>{% endfor %}
+    </tbody></table>{% else %}<div class="empty"><strong>No venues saved yet</strong>Add venues here, then select them when creating or editing events.</div>{% endif %}
+  </section>
+  <section id="venue-form" class="card form-card"><h2 style="margin:0 0 6px">{% if editing_venue %}Update venue{% else %}Add a venue{% endif %}</h2><form method="post">{% csrf_token %}<input type="hidden" name="action" value="{% if editing_venue %}update_venue{% else %}save_venue{% endif %}">{% if editing_venue %}<input type="hidden" name="venue_id" value="{{ editing_venue.id }}">{% endif %}
+<fieldset class="details-section"><legend>Venue</legend><div class="details-grid">
+{% include 'planner/includes/detail_field.html' with field=venue_form.name %}
+{% include 'planner/includes/detail_field.html' with field=venue_form.address wide=True %}
+</div></fieldset>
+<fieldset class="details-section"><legend>Contact details</legend><div class="details-grid">
+{% include 'planner/includes/detail_field.html' with field=venue_form.contact_name %}
+{% include 'planner/includes/detail_field.html' with field=venue_form.phone %}
+{% include 'planner/includes/detail_field.html' with field=venue_form.email %}
+{% include 'planner/includes/detail_field.html' with field=venue_form.website %}
+</div></fieldset>
+<fieldset class="details-section"><legend>Additional details</legend><div class="details-grid">
+{% include 'planner/includes/detail_field.html' with field=venue_form.notes wide=True %}
+</div></fieldset>
+
+    {% if venue_form.non_field_errors %}<div class="form-error">{{ venue_form.non_field_errors }}</div>{% endif %}<div class="form-actions"><button class="button" type="submit"><svg class="button-icon" aria-hidden="true"><use href="{% if editing_venue %}#icon-save{% else %}#icon-plus{% endif %}"></use></svg>{% if editing_venue %}Save venue{% else %}Add venue{% endif %}</button>{% if editing_venue %} <a href="{% url 'venue_list' %}" class="status-select">Cancel</a>{% endif %}</div>
+  </form></section>
+</main>
+<style>.table-card td:last-child{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.table-card td:last-child form{margin:0!important}.table-card td:last-child .status-select{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:92px;min-height:40px;padding:7px 12px;white-space:nowrap}</style>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends 'planner/base.html' %}
+{% block title %}Spending statement · Plan2Wed{% endblock %}
+{% block content %}
+<main class="page statement">
+  <div class="statement-actions"><a class="muted" href="{% url 'member_portal' %}">← Back to wedding budget</a><button class="button" type="button" onclick="window.print()">Print / Save as PDF</button></div>
+  <div class="eyebrow" style="margin-top:24px">Wedding budget</div>
+  <h1>Spending statement</h1>
+  <p><strong>{{ member.couple_name }}</strong>{% if budget.wedding_date %} · Wedding date: {{ budget.wedding_date|date:'j F Y' }}{% endif %}<br><span class="muted">Generated {{ generated_at|date:'j F Y, H:i' }} UTC</span></p>
+  <p class="muted">All recorded spending across your wedding events. Amounts use the same currency as your budget. Pending expenses are shown separately and are excluded from spending totals.</p>
+  <div class="stats statement-totals">
+    <div class="stat"><div class="stat-label">Total budget</div><div class="stat-value">{{ budget.allocated|default:0|floatformat:2 }}</div></div>
+    <div class="stat"><div class="stat-label">Total spent</div><div class="stat-value">{{ spent|floatformat:2 }}</div></div>
+    <div class="stat"><div class="stat-label">Pending expenses</div><div class="stat-value">{{ pending|floatformat:2 }}</div></div>
+    <div class="stat"><div class="stat-label">Available balance</div><div class="stat-value">{{ remaining|floatformat:2 }}</div></div>
+  </div>
+  {% for section in sections %}
+  <section class="statement-event" aria-labelledby="event-{{ section.event.pk }}">
+    <h2 id="event-{{ section.event.pk }}">{{ section.event.name }}</h2>
+    <p class="muted">Event date: {{ section.event.event_date|date:'j F Y'|default:'Not set' }}</p>
+    {% if section.items or section.event.other_spent %}
+    <div class="table-card"><table><thead><tr><th scope="col">Description</th><th scope="col">Supplier</th><th scope="col">Quantity</th><th scope="col">Unit cost</th><th scope="col">Spent</th></tr></thead><tbody>
+      {% for item in section.items %}<tr><td>{{ item.name }}{% if item.notes %}<br><span class="muted">{{ item.notes }}</span>{% endif %}</td><td>{{ item.supplier_name|default:'—' }}</td><td>{{ item.quantity }}</td><td>{{ item.unit_cost|floatformat:2 }}</td><td>{{ item.total_cost|floatformat:2 }}</td></tr>{% endfor %}
+      {% if section.event.other_spent %}<tr><td>Other event spending</td><td>—</td><td>—</td><td>—</td><td>{{ section.event.other_spent|floatformat:2 }}</td></tr>{% endif %}
+    </tbody><tfoot><tr><th scope="row" colspan="4">Event total spent</th><td><strong>{{ section.spent|floatformat:2 }}</strong></td></tr></tfoot></table></div>
+    {% else %}<p class="muted">No spending recorded for this event.</p>{% endif %}
+    <p class="muted">Pending expenses: {{ section.pending|floatformat:2 }} · Total budget spent on this event: {% if section.budget_percentage is not None %}{{ section.budget_percentage|floatformat:2 }}%{% else %}N/A (total budget not set){% endif %}</p>
+  </section>
+  {% empty %}<div class="empty"><strong>No spending recorded yet</strong>Add events and record costs to include them in your statement.</div>{% endfor %}
+  <p><strong>Total spent across all events: {{ spent|floatformat:2 }}</strong></p>
+</main>
+<style>
+.statement-actions{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.statement-totals{grid-template-columns:repeat(4,minmax(0,1fr))}.statement-event{margin:30px 0}.statement td,.statement th{overflow-wrap:anywhere}.statement td:last-child,.statement th:last-child{text-align:right;font-variant-numeric:tabular-nums}
+@media(max-width:760px){.statement-totals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media print{@page{margin:15mm}body{background:white;color:#000}.topbar,.statement-actions,#page-scroll-cue{display:none!important}.statement{max-width:none;width:100%;margin:0;padding:0}.statement h1{font-size:28px}.statement h2{break-after:avoid}.statement .stats{gap:12px}.statement .stat{padding:12px;border:1px solid #ccc}.statement .stat-value{font-size:20px}.statement .table-card{overflow:visible;box-shadow:none}.statement table{width:100%;min-width:0;table-layout:fixed;font-size:11px}.statement th,.statement td{padding:8px}.statement tr{break-inside:avoid}.statement thead{display:table-header-group}.statement .muted{color:#444}}
+</style>
+{% endblock %}

@@ -1,0 +1,6 @@
+<div class="field{% if wide %} details-wide{% endif %}">
+  <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {{ field }}
+  {% if field.help_text %}<p id="{{ field.auto_id }}_helptext" class="muted" style="font-size:12px;margin:7px 0 0">{{ field.help_text }}</p>{% endif %}
+  {% if field.errors %}<ul class="errorlist">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+</div>
