@@ -35,9 +35,28 @@ def scan_receipt(upload):
         with tempfile.NamedTemporaryFile(suffix='.png') as image:
             prepared.save(image, format='PNG', dpi=(300, 300))
             image.flush()
+            # Detect rotation separately: automatic page layout can split
+            # receipt names and prices into different reading-order columns.
+            try:
+                orientation = subprocess.run(
+                    ['tesseract', image.name, 'stdout', '-l', 'osd', '--psm', '0'],
+                    capture_output=True, timeout=5, check=False,
+                )
+                report = orientation.stdout.decode('utf-8', errors='replace')
+                rotation = re.search(r'^Rotate: (90|180|270)$', report, re.M)
+                confidence = re.search(r'^Orientation confidence: ([0-9.]+)$', report, re.M)
+                if orientation.returncode == 0 and rotation and confidence and float(confidence[1]) >= 5:
+                    prepared = prepared.rotate(-int(rotation[1]), expand=True, fillcolor=255)
+                    image.seek(0)
+                    image.truncate()
+                    prepared.save(image, format='PNG', dpi=(300, 300))
+                    image.flush()
+            except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+                # Short receipts may not contain enough text for OSD.
+                pass
             result = subprocess.run(
-                ['tesseract', image.name, 'stdout', '-l', 'eng', '--psm', '1'],
-                capture_output=True, timeout=25, check=True,
+                ['tesseract', image.name, 'stdout', '-l', 'eng', '--psm', '4'],
+                capture_output=True, timeout=20, check=True,
             )
     except (UnidentifiedImageError, Image.DecompressionBombError, Image.DecompressionBombWarning):
         raise ValidationError('This image could not be decoded safely. Export it as a smaller JPEG or PNG and try again.')

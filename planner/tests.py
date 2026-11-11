@@ -504,7 +504,7 @@ class ReceiptTests(TestCase):
             with Image.open(command[1]) as prepared:
                 self.assertEqual(prepared.size, (100, 300))
                 self.assertEqual(prepared.mode, 'L')
-            self.assertEqual(command[-2:], ['--psm', '1'])
+            self.assertIn(command[-1], ('0', '4'))
             return CompletedProcess(command, 0, b'Candles 12.50', b'')
 
         with patch('planner.receipts.subprocess.run', side_effect=recognise):
@@ -571,3 +571,33 @@ B 20.0% Net 8.63 Vat 1.73"""
         with patch('planner.receipts.subprocess.run', side_effect=recognise):
             text = scan_receipt(SimpleUploadedFile('phone.jpg', buffer.getvalue()))
         self.assertIn('LED CANDLES', text)
+
+    def test_receipt_orientation_and_row_layout_are_separate(self):
+        from subprocess import CompletedProcess
+        from unittest.mock import patch
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+        from .receipts import scan_receipt
+
+        def recognise(command, **kwargs):
+            if command[-1] == '0':
+                return CompletedProcess(command, 0, b'Rotate: 90\nOrientation confidence: 12.0\n', b'')
+            self.assertEqual(command[-2:], ['--psm', '4'])
+            with Image.open(command[1]) as image:
+                self.assertEqual(image.size, (300, 200))
+            return CompletedProcess(command, 0, b'755322 LED CANDLES 3.99 B', b'')
+
+        with patch('planner.receipts.subprocess.run', side_effect=recognise):
+            text = scan_receipt(SimpleUploadedFile('receipt.png', self.receipt_image()))
+        self.assertEqual(text, '755322 LED CANDLES 3.99 B')
+
+    def test_orientation_timeout_does_not_prevent_receipt_ocr(self):
+        from subprocess import CompletedProcess, TimeoutExpired
+        from unittest.mock import patch
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .receipts import scan_receipt
+        with patch('planner.receipts.subprocess.run', side_effect=[
+            TimeoutExpired('tesseract', 5),
+            CompletedProcess([], 0, b'LED CANDLES 3.99 B', b''),
+        ]):
+            self.assertIn('3.99', scan_receipt(SimpleUploadedFile('receipt.png', self.receipt_image())))
