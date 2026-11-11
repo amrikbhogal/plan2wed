@@ -371,3 +371,86 @@ class EventDescriptionTests(TestCase):
         response = self.client.get(reverse('event_add'))
         self.assertContains(response, 'id_description')
         self.assertContains(response, 'event-descriptions')
+
+
+class ReceiptTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username='receipt-user')
+        member = Member.objects.create(user=self.user, first_name='A', last_name='B', email='receipt@example.com')
+        self.budget = WeddingBudget.objects.create(member=member, wedding_date=date(2027, 6, 12))
+        self.event = self.budget.events.get()
+        self.url = reverse('event_shopping_list', args=[self.event.pk])
+        self.client.force_login(self.user)
+
+    def scan(self):
+        from unittest.mock import patch
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        with patch('planner.views.scan_receipt', return_value='SHOP\n2 x Candles 12.00\nFlowers 20.00\nTOTAL 32.00'):
+            return self.client.post(self.url, {'action': 'scan_receipt', 'image': SimpleUploadedFile('receipt.png', b'example')})
+
+    def confirmation(self, token, **changes):
+        data = {'action': 'confirm_receipt', 'receipt_token': token,
+                'receipt-TOTAL_FORMS': '1', 'receipt-INITIAL_FORMS': '0',
+                'receipt-0-include': 'on', 'receipt-0-name': 'Candles',
+                'receipt-0-quantity': '2', 'receipt-0-unit_cost': '6.00',
+                'receipt-0-supplier_name': 'Shop'}
+        data.update(changes)
+        return self.client.post(self.url, data)
+
+    def test_review_does_not_change_spending_and_confirmation_updates_match(self):
+        item = ShoppingListItem.objects.create(event=self.event, name='Candles', quantity=1, unit_cost=5)
+        response = self.scan()
+        self.assertContains(response, 'Review receipt items')
+        self.assertEqual(len(response.context['receipt_rows'].forms), 2)
+        self.assertEqual(self.event.spent, 0)
+        token = response.context['receipt_token']
+        self.assertEqual(self.confirmation(token, **{'receipt-0-existing_item': item.pk}).status_code, 302)
+        item.refresh_from_db()
+        self.assertTrue(item.is_purchased)
+        self.assertEqual(self.event.spent, Decimal('12'))
+        self.assertEqual(self.event.pending, 0)
+        self.confirmation(token)
+        self.assertEqual(self.event.shopping_items.count(), 1)
+
+    def test_invalid_price_keeps_review_without_saving(self):
+        token = self.scan().context['receipt_token']
+        response = self.confirmation(token, **{'receipt-0-unit_cost': '-1'})
+        self.assertContains(response, 'Review receipt items')
+        self.assertFalse(self.event.shopping_items.exists())
+
+    def test_match_cannot_reference_another_event(self):
+        from .models import WeddingEvent
+        other = WeddingEvent.objects.create(budget=self.budget, name='Other')
+        item = ShoppingListItem.objects.create(event=other, name='Candles')
+        token = self.scan().context['receipt_token']
+        response = self.confirmation(token, **{'receipt-0-existing_item': item.pk})
+        self.assertTrue(response.context['receipt_rows'].errors)
+        item.refresh_from_db()
+        self.assertFalse(item.is_purchased)
+
+    def test_ocr_failure_and_invalid_file_are_recoverable(self):
+        from unittest.mock import patch
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .receipts import scan_receipt
+        from django.core.exceptions import ValidationError
+        with self.assertRaises(ValidationError):
+            scan_receipt(SimpleUploadedFile('bad.png', b'not an image'))
+        with patch('planner.receipts.subprocess.run', side_effect=FileNotFoundError):
+            response = self.client.post(self.url, {'action': 'scan_receipt', 'image': SimpleUploadedFile('receipt.png', b'\x89PNG\r\n\x1a\nexample')})
+        self.assertContains(response, 'not configured')
+        self.assertFalse(self.event.shopping_items.exists())
+
+    def test_ocr_and_new_purchase(self):
+        from unittest.mock import patch
+        from subprocess import CompletedProcess
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        with patch('planner.receipts.subprocess.run', return_value=CompletedProcess([], 0, b'Candles 12.00', b'')):
+            response = self.client.post(self.url, {'action': 'scan_receipt', 'image': SimpleUploadedFile('receipt.png', b'\x89PNG\r\n\x1a\nexample')})
+        self.assertEqual(self.confirmation(response.context['receipt_token']).status_code, 302)
+        self.assertEqual(self.event.spent, Decimal('12'))
+
+    def test_receipt_text_without_upload_is_rejected(self):
+        response = self.client.post(self.url, {'action': 'scan_receipt', 'text': 'Candles 12.00'})
+        self.assertContains(response, 'Upload a receipt photo.')
+        self.assertNotContains(response, 'name="text"')
+        self.assertFalse(self.event.shopping_items.exists())

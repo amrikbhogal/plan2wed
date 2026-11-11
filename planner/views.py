@@ -1,5 +1,7 @@
 import csv
 import io
+import secrets
+from django.core.exceptions import ValidationError
 from decimal import Decimal
 
 from django.utils import timezone
@@ -14,6 +16,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.cache import never_cache
 
 from .forms import SeatingTableForm, MemberSignupForm, ShoppingListItemForm, VenueForm, WeddingBudgetForm, WeddingEventForm, WeddingGuestForm
+from .forms import ReceiptUploadForm, ReceiptItemFormSet
+from .receipts import scan_receipt, receipt_items
 from .models import SeatingTable, SeatingAssignment, Member, ShoppingListItem, Venue, WeddingBudget, WeddingEvent, WeddingGuest
 
 
@@ -175,12 +179,56 @@ def event_shopping_list(request, event_id):
         return redirect("member_portal")
     event = get_object_or_404(WeddingEvent, pk=event_id, budget__member=member)
     items = event.shopping_items.all()
+    receipt_form = ReceiptUploadForm()
+    receipt_rows = None
+    receipt_text = ''
+    receipt_token = ''
+    receipt_key = f'receipt_review_{event.pk}'
     editing_item = get_object_or_404(ShoppingListItem, pk=request.GET["edit_item"], event=event) if request.GET.get("edit_item") else None
     item_form = ShoppingListItemForm(instance=editing_item)
 
     if request.method == "POST":
         action = request.POST.get("action")
-        if action == "add_item":
+        if action == "scan_receipt":
+            receipt_form = ReceiptUploadForm(request.POST, request.FILES)
+            if receipt_form.is_valid():
+                try:
+                    receipt_text = scan_receipt(receipt_form.cleaned_data['image'])
+                    suggestions = receipt_items(receipt_text)
+                    if not suggestions:
+                        raise ValidationError('No item prices were found. Try a clearer photo showing the item names and prices, or add items manually.')
+                    for row in suggestions:
+                        match = event.shopping_items.filter(is_purchased=False, name__iexact=row['name']).first()
+                        if match:
+                            row['existing_item'] = match.pk
+                            row['supplier_name'] = match.supplier_name
+                    receipt_rows = ReceiptItemFormSet(initial=suggestions, form_kwargs={'event': event}, prefix='receipt')
+                    receipt_token = secrets.token_urlsafe(24)
+                    request.session[receipt_key] = receipt_token
+                except ValidationError as error:
+                    receipt_form.add_error(None, error)
+        elif action == "confirm_receipt":
+            receipt_token = request.POST.get('receipt_token', '')
+            receipt_rows = ReceiptItemFormSet(request.POST, form_kwargs={'event': event}, prefix='receipt')
+            if not receipt_token or receipt_token != request.session.get(receipt_key):
+                receipt_form = ReceiptUploadForm({})
+                receipt_form.is_valid()
+                receipt_form.add_error(None, 'This receipt review has expired or was already imported. Please scan again.')
+                receipt_rows = None
+            elif receipt_rows.is_valid():
+                with transaction.atomic():
+                    for row in receipt_rows.cleaned_data:
+                        if not row.get('include'):
+                            continue
+                        item = row.get('existing_item') or ShoppingListItem(event=event)
+                        for field in ('name', 'quantity', 'unit_cost', 'supplier_name'):
+                            setattr(item, field, row[field])
+                        item.is_purchased = True
+                        item.save()
+                request.session.pop(receipt_key, None)
+                messages.success(request, 'Receipt items imported and marked as purchased.')
+                return redirect('event_shopping_list', event_id=event.id)
+        elif action == "add_item":
             item_form = ShoppingListItemForm(request.POST)
             if item_form.is_valid():
                 item = item_form.save(commit=False)
@@ -206,6 +254,10 @@ def event_shopping_list(request, event_id):
     return render(request, "planner/shopping_list.html", {
         "event": event,
         "items": items,
+        "receipt_form": receipt_form,
+        "receipt_rows": receipt_rows,
+        "receipt_text": receipt_text,
+        "receipt_token": receipt_token,
         "item_form": item_form,
         "editing_item": editing_item,
         "purchased_total": sum((item.total_cost for item in items if item.is_purchased), 0),

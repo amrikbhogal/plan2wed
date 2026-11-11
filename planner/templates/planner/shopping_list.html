@@ -9,6 +9,26 @@
       {% for item in items %}<tr><td><strong>{% if item.is_purchased %}<s style="color:#898e88">{{ item.name }}</s>{% else %}{{ item.name }}{% endif %}</strong></td><td>{{ item.quantity }}</td><td><span class="money-value">{{ item.unit_cost|floatformat:2 }}</span></td><td><strong class="money-value">{{ item.total_cost|floatformat:2 }}</strong></td><td>{% if item.supplier_name %}<strong>{{ item.supplier_name }}</strong>{% if item.supplier_contact %}<br>{{ item.supplier_contact }}{% endif %}{% if item.supplier_email %}<br><a class="email" href="mailto:{{ item.supplier_email }}">{{ item.supplier_email }}</a>{% endif %}{% if item.supplier_phone %}<br>{{ item.supplier_phone }}{% endif %}{% if item.supplier_website %}<br><a class="email" href="{{ item.supplier_website }}" target="_blank" rel="noopener">Website</a>{% endif %}{% else %}—{% endif %}</td><td>{{ item.notes|default:'—' }}</td><td><span class="status-pill {% if item.is_purchased %}active{% else %}pending{% endif %}">{% if item.is_purchased %}Purchased{% else %}To buy{% endif %}</span></td><td><a class="status-select" href="?edit_item={{ item.id }}#item-form"><svg class="button-icon" aria-hidden="true"><use href="#icon-pencil"></use></svg>Edit</a> <form method="post" style="display:inline">{% csrf_token %}<input type="hidden" name="action" value="toggle_item"><input type="hidden" name="item_id" value="{{ item.id }}"><button type="submit" class="status-select"><svg class="button-icon" aria-hidden="true"><use href="{% if item.is_purchased %}#icon-plus{% else %}#icon-check{% endif %}"></use></svg>{% if item.is_purchased %}Mark to buy{% else %}Mark purchased{% endif %}</button></form> <form method="post" style="display:inline"><input type="hidden" name="action" value="delete_item"><input type="hidden" name="item_id" value="{{ item.id }}">{% csrf_token %}<button type="submit" class="status-select button-danger" aria-label="Delete {{ item.name }}"><svg class="button-icon" aria-hidden="true"><use href="#icon-trash"></use></svg>Delete</button></form></td></tr>{% endfor %}
     </tbody></table>{% else %}<div class="empty"><strong>Your list is empty</strong>Add the items you need for this event below.</div>{% endif %}
   </section>
+  <section id="receipt-scan" class="card form-card">
+    <h2>Scan receipt</h2>
+    <p class="muted">Upload a clear JPEG, PNG or TIFF photo (up to 8 MB). Review the suggestions before updating your list and budget. Photos are processed temporarily and are not saved.</p>
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}<input type="hidden" name="action" value="scan_receipt">
+      {{ receipt_form.as_p }}
+      <button class="button" type="submit">Scan and review receipt</button>
+    </form>
+    {% if receipt_rows is not None %}
+    <hr><h3>Review receipt items</h3>
+    <p class="muted">Check quantities and unit prices against your receipt, including discounts and tax. Uncheck lines you do not want. Matching an item replaces its quantity and cost and marks it purchased. New items are also marked purchased.</p>
+    {% if receipt_text %}<details><summary>Extracted receipt text</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere">{{ receipt_text }}</pre></details>{% endif %}
+    <form method="post">
+      {% csrf_token %}<input type="hidden" name="action" value="confirm_receipt"><input type="hidden" name="receipt_token" value="{{ receipt_token }}">
+      {{ receipt_rows.management_form }}{{ receipt_rows.non_form_errors }}
+      {% for row in receipt_rows %}<fieldset class="details-section"><legend>Receipt item {{ forloop.counter }}</legend><div class="details-grid">{% for field in row %}{% include 'planner/includes/detail_field.html' with field=field %}{% endfor %}</div></fieldset>{% endfor %}
+      <div class="form-actions"><button class="button" type="submit">Confirm purchases</button> <a class="status-select" href="{% url 'event_shopping_list' event.id %}">Cancel</a></div>
+    </form>
+    {% endif %}
+  </section>
   <section id="item-form" class="card form-card"><h2 style="margin:0 0 6px">{% if editing_item %}Edit item{% else %}Add to the list{% endif %}</h2><form method="post">{% csrf_token %}<input type="hidden" name="action" value="{% if editing_item %}update_item{% else %}add_item{% endif %}">{% if editing_item %}<input type="hidden" name="item_id" value="{{ editing_item.id }}">{% endif %}
 <fieldset class="details-section"><legend>Item & cost</legend><div class="details-grid">
 {% include 'planner/includes/detail_field.html' with field=item_form.name %}

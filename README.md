@@ -39,3 +39,28 @@ code, not live data.
 Static assets are collected to `/srv/plan2wed/staticfiles` for Nginx to serve.
 The application requires HTTPS and a trusted Nginx proxy that overwrites
 `X-Forwarded-Proto`. Bind Gunicorn to a local Unix socket, not a public port.
+
+## Receipt scanning
+
+Shopping lists accept uploaded receipt photos (JPEG, PNG or TIFF, up to 8 MB). Install Tesseract with English language data on the application
+server: `brew install tesseract` on macOS or
+`sudo apt-get install tesseract-ocr tesseract-ocr-eng` on Debian/Ubuntu.
+The service must have `tesseract` on its PATH. See the
+[Tesseract documentation](https://tesseract-ocr.github.io/tessdoc/Command-Line-Usage.html).
+No external OCR account or API key is used. Images are deleted after processing.
+Allow uploads of at least 8 MB in the reverse proxy (`client_max_body_size 10m;`
+for Nginx) and allow the OCR request up to 25 seconds plus request overhead.
+
+Suggestions assume each item line ends with its total, optionally with a leading
+quantity such as `2 x Candles 12.00`. Quantities otherwise default to one.
+Users must review unit prices, tax, discounts and matches before confirming.
+Confirming replaces matched unpurchased items or creates new purchased items;
+the existing spending calculation then updates automatically. PDF and HEIC
+receipts should be converted to JPEG/PNG first. No database migration is needed.
+
+## Deploying this release
+
+Follow the [receipt scanning deployment runbook](docs/deployment.md) for server
+prerequisites, production checks, activation, smoke testing and rollback.
+Check OCR availability under the application service account with
+`python manage.py check_receipt_scanner --settings=config.production`.

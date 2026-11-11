@@ -279,3 +279,35 @@ class SeatingTableForm(forms.ModelForm):
         if data.get("name") and SeatingTable.objects.filter(event=self.instance.event, name=data["name"]).exclude(pk=self.instance.pk).exists():
             self.add_error("name", "This event already has a table with that name.")
         return data
+
+
+class ReceiptUploadForm(forms.Form):
+    image = forms.FileField(label="Receipt photo", error_messages={"required": "Upload a receipt photo."}, widget=forms.ClearableFileInput(attrs={"accept": "image/jpeg,image/png,image/tiff"}))
+
+
+class ReceiptItemForm(forms.Form):
+    include = forms.BooleanField(required=False, initial=True, label="Import")
+    existing_item = forms.ModelChoiceField(queryset=ShoppingListItem.objects.none(), required=False, label="Match shopping item", empty_label="Add as a new item")
+    name = forms.CharField(max_length=160)
+    quantity = forms.IntegerField(min_value=1, max_value=2147483647)
+    unit_cost = forms.DecimalField(min_value=0, max_digits=12, decimal_places=2)
+    supplier_name = forms.CharField(max_length=160, required=False)
+
+    def __init__(self, *args, event, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['existing_item'].queryset = event.shopping_items.filter(is_purchased=False)
+
+
+class BaseReceiptFormSet(forms.BaseFormSet):
+    def clean(self):
+        if any(self.errors):
+            return
+        included = [f.cleaned_data for f in self.forms if f.cleaned_data.get('include')]
+        if not included:
+            raise forms.ValidationError('Select at least one item to import.')
+        matches = [row['existing_item'].pk for row in included if row.get('existing_item')]
+        if len(matches) != len(set(matches)):
+            raise forms.ValidationError('Match each shopping item only once.')
+
+
+ReceiptItemFormSet = forms.formset_factory(ReceiptItemForm, formset=BaseReceiptFormSet, extra=0, max_num=50, validate_max=True, absolute_max=50)
