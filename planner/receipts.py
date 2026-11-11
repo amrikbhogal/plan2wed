@@ -1,10 +1,13 @@
 """Local receipt OCR. Images are processed temporarily, never stored publicly."""
+import io
 import re
+import warnings
 import subprocess
 import tempfile
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 
 def scan_receipt(upload):
@@ -14,13 +17,27 @@ def scan_receipt(upload):
     if not (data.startswith(b'\xff\xd8\xff') or data.startswith(b'\x89PNG\r\n\x1a\n') or data.startswith((b'II*\x00', b'MM\x00*'))):
         raise ValidationError('Upload a JPEG, PNG or TIFF receipt image.')
     try:
-        with tempfile.NamedTemporaryFile(suffix='.image') as image:
-            image.write(data)
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', Image.DecompressionBombWarning)
+            with Image.open(io.BytesIO(data)) as source:
+                if source.width * source.height > 24_000_000:
+                    raise ValidationError('This photo is too large to process. Resize it to 24 megapixels or less.')
+                prepared = ImageOps.exif_transpose(source)
+                # Composite transparency against paper white before greyscale OCR.
+                rgba = prepared.convert('RGBA')
+                paper = Image.new('RGBA', rgba.size, 'white')
+                paper.alpha_composite(rgba)
+                prepared = ImageOps.autocontrast(paper.convert('L'))
+                prepared.thumbnail((4000, 4000))
+        with tempfile.NamedTemporaryFile(suffix='.png') as image:
+            prepared.save(image, format='PNG', dpi=(300, 300))
             image.flush()
             result = subprocess.run(
-                ['tesseract', image.name, 'stdout', '-l', 'eng', '--psm', '6'],
+                ['tesseract', image.name, 'stdout', '-l', 'eng', '--psm', '1'],
                 capture_output=True, timeout=25, check=True,
             )
+    except (UnidentifiedImageError, Image.DecompressionBombError, Image.DecompressionBombWarning):
+        raise ValidationError('This image could not be decoded safely. Export it as a smaller JPEG or PNG and try again.')
     except FileNotFoundError:
         raise ValidationError('Receipt scanning is not configured on this server. Please add items manually until scanning is available.')
     except (subprocess.SubprocessError, OSError):

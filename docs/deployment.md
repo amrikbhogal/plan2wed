@@ -1,7 +1,8 @@
 # Receipt scanning release
 
 This release adds uploaded receipt images and review before purchase confirmation.
-There are no model changes or new Python dependencies. Keep the current production
+There are no model changes. Install the Python image preprocessing dependency
+with the application virtual environment: `python -m pip install -r requirements.txt`. Keep the current production
 WSGI server and database configuration. Do not copy the local SQLite database to
 production.
 
@@ -21,7 +22,7 @@ secret or switch database engines for this release.
 
    ```sh
    sudo apt-get update
-   sudo apt-get install tesseract-ocr tesseract-ocr-eng
+   sudo apt-get install tesseract-ocr tesseract-ocr-eng tesseract-ocr-osd
    ```
 
 3. In the existing HTTPS Nginx server/location serving Django, configure:

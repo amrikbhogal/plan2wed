@@ -44,7 +44,7 @@ The application requires HTTPS and a trusted Nginx proxy that overwrites
 
 Shopping lists accept uploaded receipt photos (JPEG, PNG or TIFF, up to 8 MB). Install Tesseract with English language data on the application
 server: `brew install tesseract` on macOS or
-`sudo apt-get install tesseract-ocr tesseract-ocr-eng` on Debian/Ubuntu.
+`sudo apt-get install tesseract-ocr tesseract-ocr-eng tesseract-ocr-osd` on Debian/Ubuntu.
 The service must have `tesseract` on its PATH. See the
 [Tesseract documentation](https://tesseract-ocr.github.io/tessdoc/Command-Line-Usage.html).
 No external OCR account or API key is used. Images are deleted after processing.
@@ -64,3 +64,7 @@ Follow the [receipt scanning deployment runbook](docs/deployment.md) for server
 prerequisites, production checks, activation, smoke testing and rollback.
 Check OCR availability under the application service account with
 `python manage.py check_receipt_scanner --settings=config.production`.
+
+Receipt OCR applies phone EXIF orientation, white-background greyscale contrast
+cleanup and automatic page orientation detection. Install requirements.txt before
+restarting the application after an update. Images are limited to 24 megapixels.

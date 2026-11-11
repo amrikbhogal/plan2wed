@@ -382,6 +382,14 @@ class ReceiptTests(TestCase):
         self.url = reverse('event_shopping_list', args=[self.event.pk])
         self.client.force_login(self.user)
 
+    @staticmethod
+    def receipt_image():
+        import io
+        from PIL import Image
+        buffer = io.BytesIO()
+        Image.new('RGB', (200, 300), 'white').save(buffer, format='PNG')
+        return buffer.getvalue()
+
     def scan(self):
         from unittest.mock import patch
         from django.core.files.uploadedfile import SimpleUploadedFile
@@ -436,7 +444,7 @@ class ReceiptTests(TestCase):
         with self.assertRaises(ValidationError):
             scan_receipt(SimpleUploadedFile('bad.png', b'not an image'))
         with patch('planner.receipts.subprocess.run', side_effect=FileNotFoundError):
-            response = self.client.post(self.url, {'action': 'scan_receipt', 'image': SimpleUploadedFile('receipt.png', b'\x89PNG\r\n\x1a\nexample')})
+            response = self.client.post(self.url, {'action': 'scan_receipt', 'image': SimpleUploadedFile('receipt.png', self.receipt_image())})
         self.assertContains(response, 'not configured')
         self.assertFalse(self.event.shopping_items.exists())
 
@@ -445,7 +453,7 @@ class ReceiptTests(TestCase):
         from subprocess import CompletedProcess
         from django.core.files.uploadedfile import SimpleUploadedFile
         with patch('planner.receipts.subprocess.run', return_value=CompletedProcess([], 0, b'Candles 12.00', b'')):
-            response = self.client.post(self.url, {'action': 'scan_receipt', 'image': SimpleUploadedFile('receipt.png', b'\x89PNG\r\n\x1a\nexample')})
+            response = self.client.post(self.url, {'action': 'scan_receipt', 'image': SimpleUploadedFile('receipt.png', self.receipt_image())})
         self.assertEqual(self.confirmation(response.context['receipt_token']).status_code, 302)
         self.assertEqual(self.event.spent, Decimal('12'))
 
@@ -478,3 +486,27 @@ class ReceiptTests(TestCase):
         self.assertContains(response, 'Extracted receipt text')
         self.assertContains(response, 'Candles unreadable price')
         self.assertFalse(self.event.shopping_items.exists())
+
+    def test_phone_orientation_is_applied_before_ocr(self):
+        import io
+        from PIL import Image
+        from subprocess import CompletedProcess
+        from unittest.mock import patch
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .receipts import scan_receipt
+        buffer = io.BytesIO()
+        image = Image.new('RGB', (300, 100), 'white')
+        exif = Image.Exif()
+        exif[274] = 6
+        image.save(buffer, format='JPEG', exif=exif)
+
+        def recognise(command, **kwargs):
+            with Image.open(command[1]) as prepared:
+                self.assertEqual(prepared.size, (100, 300))
+                self.assertEqual(prepared.mode, 'L')
+            self.assertEqual(command[-2:], ['--psm', '1'])
+            return CompletedProcess(command, 0, b'Candles 12.50', b'')
+
+        with patch('planner.receipts.subprocess.run', side_effect=recognise):
+            text = scan_receipt(SimpleUploadedFile('phone.jpg', buffer.getvalue()))
+        self.assertEqual(text, 'Candles 12.50')

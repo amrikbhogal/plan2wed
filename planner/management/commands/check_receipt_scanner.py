@@ -17,6 +17,6 @@ class Command(BaseCommand):
             raise CommandError('Install tesseract-ocr and tesseract-ocr-eng and ensure tesseract is on the service PATH.') from error
         except (OSError, subprocess.SubprocessError) as error:
             raise CommandError('Tesseract could not start. Check the installation and service permissions.') from error
-        if 'eng' not in result.stdout.splitlines():
-            raise CommandError('Tesseract English data is missing. Install tesseract-ocr-eng.')
+        if not {'eng', 'osd'}.issubset(result.stdout.splitlines()):
+            raise CommandError('Tesseract needs English and orientation data. Install tesseract-ocr-eng and tesseract-ocr-osd.')
         self.stdout.write(self.style.SUCCESS('Receipt scanner ready: Tesseract and English language data are available.'))
