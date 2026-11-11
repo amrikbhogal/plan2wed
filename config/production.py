@@ -9,13 +9,27 @@ if len(SECRET_KEY) < 50:
 DEBUG = False
 ALLOWED_HOSTS = ["plan2wed.co.uk", "www.plan2wed.co.uk"]
 CSRF_TRUSTED_ORIGINS = ["https://plan2wed.co.uk", "https://www.plan2wed.co.uk"]
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": Path(os.environ.get("DJANGO_DB_PATH", "/srv/plan2wed/data/db.sqlite3")),
-        "OPTIONS": {"timeout": 20},
+# SQLite remains available explicitly for the initial data export.
+if os.environ.get("DJANGO_DATABASE", "sqlite") == "postgresql":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": "plan2wed",
+            "USER": "plan2wed",
+            "HOST": "/var/run/postgresql",
+            "PORT": "5432",
+            "CONN_MAX_AGE": 60,
+            "CONN_HEALTH_CHECKS": True,
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": Path(os.environ.get("DJANGO_DB_PATH", "/srv/plan2wed/data/db.sqlite3")),
+            "OPTIONS": {"timeout": 20},
+        }
+    }
 STATIC_ROOT = Path("/srv/plan2wed/staticfiles")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
