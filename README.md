@@ -25,3 +25,14 @@ python manage.py test
 ```
 
 Local databases, uploaded media, credentials and Python cache files are excluded from Git. Configure production settings before deployment; the checked-in settings are for local development.
+
+## VPS production settings
+
+Use `DJANGO_SETTINGS_MODULE=config.production` and a fixed, randomly generated
+`DJANGO_SECRET_KEY` of at least 50 characters. Store these in `/etc/plan2wed.env`,
+readable only by root and the `plan2wed` service group. Never commit this file.
+The production SQLite database lives at `/srv/plan2wed/data/db.sqlite3`; back it
+up separately using SQLite's backup API. GitHub stores code, not live data.
+Static assets are collected to `/srv/plan2wed/staticfiles` for Nginx to serve.
+The application requires HTTPS and a trusted Nginx proxy that overwrites
+`X-Forwarded-Proto`. Bind Gunicorn to a local Unix socket, not a public port.
