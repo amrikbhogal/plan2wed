@@ -109,7 +109,9 @@ blank; these display Not priced and contribute zero to totals until priced.
 Receipt review includes a list dropdown and preserves matched items' lists.
 
 Use **Manage shopping lists** alongside Manage venues and Manage guest list on
-the wedding plan. Choose an event, then upload and preview a CSV. A downloadable
+the wedding plan. Choose an event and add items manually, or upload and preview a CSV.
+Manual entry supports optional costs and supplier details, adds items as To buy,
+and keeps the chosen event/list selected for adding more items. A downloadable
 template is provided. Event shopping pages link here with their event preselected.
 Headers: `Item,Quantity,List,Unit cost,Supplier,Notes`. Only Item is required.
 Quantity defaults to 1 and missing List uses the selected default. Optional Event

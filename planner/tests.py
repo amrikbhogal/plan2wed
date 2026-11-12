@@ -814,3 +814,29 @@ class ShoppingListImportTests(TestCase):
         self.assertContains(self.client.get(reverse('shopping_management')), 'Add an event first')
         self.client.logout()
         self.assertEqual(self.client.get(reverse('shopping_management')).status_code, 302)
+
+    def test_manual_item_from_management_without_cost(self):
+        response = self.client.post(reverse('shopping_management'), {
+            'action': 'add_manual_item', 'manual-event': self.event.pk,
+            'manual-name': 'Candles', 'manual-list_category': 'decorations', 'manual-quantity': 3,
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('event=', response.url)
+        item = self.event.shopping_items.get()
+        self.assertEqual(item.quantity, 3)
+        self.assertEqual(item.list_category, 'decorations')
+        self.assertIsNone(item.unit_cost)
+        self.assertFalse(item.is_purchased)
+
+    def test_manual_item_rejects_other_members_event_and_shows_errors(self):
+        from .models import WeddingEvent
+        other = Member.objects.create(first_name='Other', last_name='Member', email='manual-other@example.com')
+        event = WeddingEvent.objects.create(budget=WeddingBudget.objects.create(member=other), name='Private')
+        response = self.client.post(reverse('shopping_management'), {
+            'action': 'add_manual_item', 'manual-event': event.pk,
+            'manual-name': 'Candles', 'manual-list_category': 'decorations', 'manual-quantity': 1,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['manual_form'].errors)
+        self.assertContains(response, 'Candles')
+        self.assertFalse(event.shopping_items.exists())

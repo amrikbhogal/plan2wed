@@ -13,10 +13,11 @@ from django.contrib import messages
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.cache import never_cache
 
 from .forms import SeatingTableForm, MemberSignupForm, ShoppingListItemForm, VenueForm, WeddingBudgetForm, WeddingEventForm, WeddingGuestForm
-from .forms import ReceiptUploadForm, ReceiptItemFormSet, ShoppingManagementImportForm
+from .forms import ReceiptUploadForm, ReceiptItemFormSet, ShoppingManagementImportForm, ShoppingManagementItemForm
 from .shopping_import import read_shopping_csv
 from .receipts import scan_receipt, receipt_items
 from .notifications import notify_administrator
@@ -184,6 +185,7 @@ def shopping_management(request):
     initial = {'list_category': request.GET.get('list', 'other')}
     if request.GET.get('event', '').isdigit():
         initial['event'] = get_object_or_404(events, pk=request.GET['event']).pk
+    manual_form = ShoppingManagementItemForm(member=member, initial=initial, prefix="manual")
     import_form = ShoppingManagementImportForm(member=member, initial=initial)
     preview = None
     token = ''
@@ -191,7 +193,15 @@ def shopping_management(request):
     key = 'shopping_management_import'
     if request.method == 'POST':
         action = request.POST.get('action')
-        if action == 'preview_import':
+        if action == 'add_manual_item':
+            manual_form = ShoppingManagementItemForm(request.POST, member=member, prefix='manual')
+            if manual_form.is_valid():
+                item = manual_form.save(commit=False)
+                item.is_purchased = False
+                item.save()
+                messages.success(request, f'{item.name} added to {item.event.name} as To buy.')
+                return redirect(f"{reverse('shopping_management')}?event={item.event_id}&list={item.list_category}#manual-item")
+        elif action == 'preview_import':
             request.session.pop(key, None)
             import_form = ShoppingManagementImportForm(request.POST, request.FILES, member=member)
             if import_form.is_valid():
@@ -220,7 +230,7 @@ def shopping_management(request):
             messages.success(request, f'Imported {added} items as To buy; skipped {skipped} duplicates.')
             return redirect('event_shopping_list', event_id=event.pk)
     return render(request, 'planner/shopping_management.html', {
-        'events': events, 'event': event, 'import_form': import_form,
+        'events': events, 'event': event, 'import_form': import_form, 'manual_form': manual_form,
         'import_preview': preview, 'import_token': token,
         'list_choices': ShoppingListItem.ListCategory.choices,
     })

@@ -327,3 +327,14 @@ class ShoppingManagementImportForm(ShoppingImportForm):
         super().__init__(*args, **kwargs)
         self.fields['event'].queryset = WeddingEvent.objects.filter(budget__member=member)
         self.order_fields(['event', 'file', 'list_category'])
+
+
+class ShoppingManagementItemForm(ShoppingListItemForm):
+    event = forms.ModelChoiceField(queryset=WeddingEvent.objects.none(), label='Wedding event')
+
+    class Meta(ShoppingListItemForm.Meta):
+        fields = ['event', *ShoppingListItemForm.Meta.fields]
+
+    def __init__(self, *args, member, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['event'].queryset = WeddingEvent.objects.filter(budget__member=member)
