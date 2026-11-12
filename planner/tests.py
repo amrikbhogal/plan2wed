@@ -601,3 +601,43 @@ B 20.0% Net 8.63 Vat 1.73"""
             CompletedProcess([], 0, b'LED CANDLES 3.99 B', b''),
         ]):
             self.assertIn('3.99', scan_receipt(SimpleUploadedFile('receipt.png', self.receipt_image())))
+
+    def test_b_and_q_barcode_price_lines(self):
+        from .receipts import receipt_items
+        text = """B&Q
+1x HEBE ADDENDA PURPLE
+
+5059340873817 £6.00
+1x METHOD ALL FLOOR CLEANER 739ML
+0817939013779 ¢4.75
+S Promo ey oe
+1x MTD DAILY SHOWER SPRAY 0.828L EN ¢
+0817939005231 £4.00
+S Promo ~£4.20
+1x PACK OF 20 TEA LIGHTS
+5053844425183 £3.00
+1x FOLIAGE IN CERAMIC 12CM
+9063022511621 £3.00
+Ix HEBE ADDENDA BLUE
+9059340873794 £6.00
+1x INTERLOCK CHILDREN TRAFFIC PLAY MA
+9063022558817 £9.50
+1x BATTERY NORDIC LANTERN ARONA
+9050642116879 £12.00
+8 Item(s)
+TOTAL £50.10
+Card sale ~£50.10"""
+        rows = receipt_items(text)
+        self.assertEqual(len(rows), 8)
+        self.assertEqual(rows[0]['name'], 'HEBE ADDENDA PURPLE')
+        self.assertEqual(rows[1]['unit_cost'], Decimal('4.75'))
+        self.assertEqual(rows[5]['name'], 'HEBE ADDENDA BLUE')
+        self.assertEqual(sum(row['unit_cost'] * row['quantity'] for row in rows), Decimal('48.25'))
+
+    def test_multiline_receipt_does_not_pair_unrelated_barcode(self):
+        from .receipts import receipt_items
+        self.assertEqual(receipt_items('1x Missing price item\nTOTAL £9.00\n5059340873817 £9.00'), [])
+        self.assertEqual(receipt_items('5059340873817 £9.00'), [])
+        rows = receipt_items('2x CANDLES\n5059340873817 £6.00')
+        self.assertEqual(rows[0]['quantity'], 2)
+        self.assertEqual(rows[0]['unit_cost'], Decimal('3.00'))

@@ -74,9 +74,15 @@ def receipt_items(text):
     """Conservative suggestions: trailing line prices, with explicit quantity only."""
     items = []
     pending_quantity = None
+    pending_description = None
     for line in text.splitlines():
-        if re.search(r'\b(total|subtotal|vat|tax|change|cash|card|payment|discount|saving|balance)\b', line, re.I) or re.match(r'^\s*t\s*o\s*t\s*a\s*l\b', line, re.I):
+        if not line.strip():
+            continue
+        line = line.replace('\u00a0', ' ')
+        line = re.sub(r'(?<=\d)\s*([.,])\s*(?=\d{2}\b)', r'\1', line)
+        if re.search(r'\b(total|subtotal|vat|tax|change|cash|card|payment|discount|saving|balance|promo)\b', line, re.I) or re.match(r'^\s*t\s*o\s*t\s*a\s*l\b', line, re.I):
             pending_quantity = None
+            pending_description = None
             continue
         # ALDI-style receipts put the quantity and unit price before the
         # product line. Use the product's line total for the final cost.
@@ -84,10 +90,22 @@ def receipt_items(text):
         if quantity_line:
             pending_quantity = int(quantity_line[1]) or None
             continue
-        # OCR often inserts spaces around decimal marks or reads trailing tax
-        # codes as separate words. Some tills place a currency symbol after prices.
-        line = line.replace('\u00a0', ' ')
-        line = re.sub(r'(?<=\d)\s*([.,])\s*(?=\d{2}\b)', r'\1', line)
+        # B&Q-style receipts put a quantity/name above a barcode and price.
+        barcode_price = re.fullmatch(r'\s*\d{8,14}\s+[£$€¢]?\s*(\d{1,8}[.,]\d{2})\s*[A-Z]?\s*', line)
+        if barcode_price:
+            if pending_description is None:
+                continue
+            quantity, name = pending_description
+            line = f'{quantity} x {name} {barcode_price[1]}'
+            pending_description = None
+        else:
+            description = re.fullmatch(r'\s*(\d{1,4}|[Il])\s*[x×]\s+(.+?)\s*', line, re.I)
+            if description and not re.search(r'\d[.,]\d{2}\s*[A-Z]?\s*$', description[2]):
+                quantity = 1 if description[1].lower() in ('i', 'l') else int(description[1])
+                pending_description = (quantity, description[2])
+                pending_quantity = None
+                continue
+            pending_description = None
         match = re.fullmatch(
             r'\s*(.+?)\s*[£$€]?\s*(\d{1,8}(?:[ ,]\d{3})*[.,]\d{2})'
             r'\s*(?:[£$€]|GBP|USD|EUR)?\s*[A-Z*]{0,2}\s*',
