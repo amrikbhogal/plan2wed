@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .models import Member, ShoppingListItem, WeddingBudget, WeddingGuest
@@ -641,3 +641,93 @@ Card sale ~£50.10"""
         rows = receipt_items('2x CANDLES\n5059340873817 £6.00')
         self.assertEqual(rows[0]['quantity'], 2)
         self.assertEqual(rows[0]['unit_cost'], Decimal('3.00'))
+
+
+@override_settings(
+    EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+    SIGNUP_NOTIFICATION_EMAILS=['info@plan2wed.co.uk'],
+    PLAN2WED_SITE_URL='https://plan2wed.co.uk',
+)
+class AccountEmailTests(TestCase):
+    def signup_data(self):
+        return {'signup_role': 'couple', 'first_name': 'Alex', 'last_name': 'Smith',
+                'email': 'alex@example.com', 'bride_name': 'Alex', 'groom_name': 'Sam',
+                'password1': 'LongUniquePassword!2026', 'password2': 'LongUniquePassword!2026'}
+
+    def test_signup_notifies_admin_after_commit_and_stays_pending(self):
+        from django.core import mail
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(reverse('signup'), self.signup_data())
+        self.assertRedirects(response, reverse('signup_complete'))
+        member = Member.objects.get(email='alex@example.com')
+        self.assertEqual(member.status, Member.Status.PENDING)
+        self.assertFalse(member.user.is_active)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['info@plan2wed.co.uk'])
+        self.assertIn(f'https://plan2wed.co.uk/admin/planner/member/{member.pk}/change/', mail.outbox[0].body)
+        self.assertNotIn('LongUniquePassword', mail.outbox[0].body)
+
+    def test_failed_email_does_not_lose_account(self):
+        from unittest.mock import patch
+        with patch('planner.notifications.send_mail', side_effect=OSError('SMTP unavailable')):
+            with self.assertLogs('planner.notifications', level='ERROR'):
+                with self.captureOnCommitCallbacks(execute=True):
+                    response = self.client.post(reverse('signup'), self.signup_data())
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Member.objects.filter(email='alex@example.com').exists())
+
+    def test_password_reset_changes_password_and_token_cannot_be_reused(self):
+        import re
+        from django.core import mail
+        user = get_user_model().objects.create_user(username='alex@example.com', email='alex@example.com', password='OldUniquePassword!2026')
+        response = self.client.post(reverse('password_reset'), {'email': user.email})
+        self.assertRedirects(response, reverse('password_reset_done'))
+        self.assertEqual(len(mail.outbox), 1)
+        url = re.search(r'https://plan2wed.co.uk(/reset/[^\s]+)', mail.outbox[0].body)[1]
+        response = self.client.get(url)
+        confirm_url = response.url
+        self.assertContains(self.client.get(confirm_url), 'Choose a new password')
+        response = self.client.post(confirm_url, {'new_password1': 'NewUniquePassword!2026', 'new_password2': 'NewUniquePassword!2026'})
+        self.assertRedirects(response, reverse('password_reset_complete'))
+        user.refresh_from_db()
+        self.assertTrue(user.check_password('NewUniquePassword!2026'))
+        self.assertContains(self.client.get(url), 'This link has expired')
+
+    def test_pending_and_unknown_emails_get_same_response_without_mail(self):
+        from django.core import mail
+        user = get_user_model().objects.create_user(username='pending', email='pending@example.com', password='OldUniquePassword!2026', is_active=False)
+        for address in (user.email, 'missing@example.com'):
+            response = self.client.post(reverse('password_reset'), {'email': address})
+            self.assertRedirects(response, reverse('password_reset_done'))
+        self.assertEqual(len(mail.outbox), 0)
+        user.refresh_from_db()
+        self.assertFalse(user.is_active)
+
+    def test_invalid_reset_link_and_login_link(self):
+        self.assertContains(self.client.get(reverse('password_reset_confirm', args=['invalid', 'invalid'])), 'This link has expired')
+        self.assertContains(self.client.get(reverse('login')), reverse('password_reset'))
+
+    def test_password_reset_link_expires_after_one_hour(self):
+        from datetime import datetime, timedelta
+        from unittest.mock import patch
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+        user = get_user_model().objects.create_user(username='expiry', email='expiry@example.com', password='OldUniquePassword!2026')
+        issued = datetime(2026, 11, 12, 12, 0, 0)
+        with patch.object(default_token_generator, '_now', return_value=issued):
+            token = default_token_generator.make_token(user)
+        url = reverse('password_reset_confirm', args=[urlsafe_base64_encode(force_bytes(user.pk)), token])
+        with patch.object(default_token_generator, '_now', return_value=issued + timedelta(seconds=3601)):
+            self.assertContains(self.client.get(url), 'This link has expired')
+
+    def test_invalid_or_duplicate_signup_does_not_notify(self):
+        from django.core import mail
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.post(reverse('signup'), self.signup_data())
+        mail.outbox.clear()
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(reverse('signup'), self.signup_data())
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(Member.objects.filter(email='alex@example.com').count(), 1)

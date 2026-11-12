@@ -18,6 +18,7 @@ from django.views.decorators.cache import never_cache
 from .forms import SeatingTableForm, MemberSignupForm, ShoppingListItemForm, VenueForm, WeddingBudgetForm, WeddingEventForm, WeddingGuestForm
 from .forms import ReceiptUploadForm, ReceiptItemFormSet
 from .receipts import scan_receipt, receipt_items
+from .notifications import notify_administrator
 from .models import SeatingTable, SeatingAssignment, Member, ShoppingListItem, Venue, WeddingBudget, WeddingEvent, WeddingGuest
 
 
@@ -49,6 +50,7 @@ def signup(request):
                         groom_phone=form.cleaned_data["groom_phone"],
                     )
                     request.session["signup_role"] = member.signup_role
+                    transaction.on_commit(lambda: notify_administrator(member), robust=True)
             except IntegrityError:
                 form.add_error("email", "This email already has a login. Please log in or use a different email address.")
             else:

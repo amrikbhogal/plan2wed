@@ -4,6 +4,7 @@
 <main class="page success-wrap"><section class="card" style="width:min(100%,430px)"><div class="eyebrow">Member access</div><h2 style="margin-top:10px">Welcome back</h2><p class="muted" style="font-size:13px">Sign in to continue planning your day.</p>
   {% if form.errors %}<div class="form-error">Your email or password is incorrect, or your membership is not active yet.</div>{% endif %}
   <form method="post">{% csrf_token %}<div class="field"><label for="id_username">Email address</label><input id="id_username" type="email" name="username" autocomplete="username" placeholder="you@example.com" required autofocus></div><div class="field"><label for="id_password">Password</label><input id="id_password" type="password" name="password" autocomplete="current-password" placeholder="Your password" required></div>{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}<button class="button full" type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-door"></use></svg>Sign In</button></form>
+  <p class="fineprint"><a href="{% url 'password_reset' %}" style="color:var(--green);font-weight:600">Forgot your password?</a></p>
   <p class="fineprint">Not a member yet? <a href="{% url 'signup' %}" style="color:var(--green);font-weight:600">Create an account</a></p>
 </section></main>
 {% endblock %}

@@ -68,3 +68,33 @@ Check OCR availability under the application service account with
 Receipt OCR applies phone EXIF orientation, white-background greyscale contrast
 cleanup and automatic page orientation detection. Install requirements.txt before
 restarting the application after an update. Images are limited to 50 megapixels and resized before OCR.
+
+## Account approval emails and password resets
+
+Each completed signup creates an inactive account and emails
+`SIGNUP_NOTIFICATION_EMAILS` (default: `info@plan2wed.co.uk`) after the database
+transaction commits. The message links to the member's Django admin screen.
+An administrator must sign in and set membership status to Active. Email links
+do not approve accounts by themselves. Delivery failures are logged; the pending
+account remains available under Members/admin for manual approval.
+
+The sign-in page includes **Forgot your password?** Approved, active accounts
+receive a single-use reset link valid for one hour. Unknown and inactive addresses
+receive the same confirmation page without an email. Resetting a password does
+not approve an account. No database migrations are required.
+
+Local development prints emails to the console by default. Production uses SMTP.
+Configure the variables in `.env.example` inside `/etc/plan2wed.env`, using your
+provider's actual SMTP host, username and password. Keep the existing Django
+secret and database settings. Do not commit SMTP credentials. For STARTTLS use
+port 587 with `EMAIL_USE_TLS=true` and `EMAIL_USE_SSL=false`; for implicit TLS use
+your provider's port (commonly 465), TLS false and SSL true. Never enable both.
+The provider must authorise `DEFAULT_FROM_EMAIL` and the domain's required
+SPF/DKIM DNS records. Set `PLAN2WED_SITE_URL=https://plan2wed.co.uk` so approval
+and reset messages use the public site address.
+
+After configuration, restart the service and test a signup notification to the
+administrator, approve the test account, then request a reset from the sign-in
+page. Check delivery and spam folders. Email configuration must be completed
+before releasing these features; local automated tests use an in-memory backend
+and do not verify delivery to real inboxes.

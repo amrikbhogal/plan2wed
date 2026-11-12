@@ -40,3 +40,6 @@ SECURE_SSL_REDIRECT = True
 SECURE_HSTS_SECONDS = 3600
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False
+
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+PLAN2WED_SITE_URL = os.environ.get('PLAN2WED_SITE_URL', 'https://plan2wed.co.uk').rstrip('/')
