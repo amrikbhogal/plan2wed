@@ -318,3 +318,12 @@ ReceiptItemFormSet = forms.formset_factory(ReceiptItemForm, formset=BaseReceiptF
 class ShoppingImportForm(forms.Form):
     file = forms.FileField(label='CSV shopping list', widget=forms.FileInput(attrs={'accept': '.csv,text/csv'}))
     list_category = forms.ChoiceField(choices=ShoppingListItem.ListCategory.choices, label='Default shopping list')
+
+
+class ShoppingManagementImportForm(ShoppingImportForm):
+    event = forms.ModelChoiceField(queryset=WeddingEvent.objects.none(), label='Wedding event')
+
+    def __init__(self, *args, member, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['event'].queryset = WeddingEvent.objects.filter(budget__member=member)
+        self.order_fields(['event', 'file', 'list_category'])

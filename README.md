@@ -108,10 +108,12 @@ Existing items migrate to Other and retain their prices. New items may leave cos
 blank; these display Not priced and contribute zero to totals until priced.
 Receipt review includes a list dropdown and preserves matched items' lists.
 
-Import CSV from within the destination event. A downloadable template is provided.
+Use **Manage shopping lists** alongside Manage venues and Manage guest list on
+the wedding plan. Choose an event, then upload and preview a CSV. A downloadable
+template is provided. Event shopping pages link here with their event preselected.
 Headers: `Item,Quantity,List,Unit cost,Supplier,Notes`. Only Item is required.
 Quantity defaults to 1 and missing List uses the selected default. Optional Event
-values must match the open event; import other events from their own pages.
+values must match the selected event; choose a different event for other imports.
 Preview makes no changes. Confirm adds items as To buy, skipping case-insensitive
 duplicate names within the same event/list (including duplicates in the CSV).
 Invalid rows reject the whole preview. Limits: UTF-8 CSV, 1 MB, 200 rows.

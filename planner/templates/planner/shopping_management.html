@@ -1,0 +1,20 @@
+{% extends 'planner/base.html' %}
+{% load static %}
+{% block title %}Manage shopping lists · Plan2Wed{% endblock %}
+{% block content %}
+<main class="page dashboard">
+<div class="heading-row"><div><a class="muted" href="{% url 'member_portal' %}#events">← Back to your wedding plan</a><div class="eyebrow" style="margin-top:20px">Wedding plan</div><h1>Manage shopping lists</h1><p class="muted">Open an event’s shopping lists or import items for an event.</p></div></div>
+{% if events %}
+<section class="table-card"><table><thead><tr><th>Event</th><th>Items</th><th>Shopping lists</th></tr></thead><tbody>{% for wedding_event in events %}<tr><td>{{ wedding_event.name }}</td><td>{{ wedding_event.shopping_items.count }}</td><td><a class="status-select" href="{% url 'event_shopping_list' wedding_event.pk %}">Manage items & receipts</a></td></tr>{% endfor %}</tbody></table></section>
+  <section id="shopping-import" class="card form-card"><h2>Import shopping list</h2>
+    <p><a href="{% static 'planner/shopping-list-template.csv' %}" download>Download CSV template</a></p>
+    <p class="muted">Choose the wedding event and import a CSV from Excel or Google Sheets. Use columns: Item, Quantity, List, Unit cost, Supplier, Notes. Only Item is required. Quantity defaults to 1; costs can be left blank. List names must match the dropdown. Duplicate names within the same list are skipped. Maximum 200 items.</p>
+    <p class="muted">An optional Event column must match this event. To import a different event, select it above.</p>
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="action" value="preview_import">{{ import_form.as_p }}<button class="button" type="submit">Preview import</button></form>
+    {% if import_preview %}<h3>Review import for {{ event.name }}</h3><p class="muted">These items will be added as To buy. Correct the CSV and upload again if changes are needed.</p>
+    <div class="table-card"><table><thead><tr><th>Item</th><th>List</th><th>Quantity</th><th>Unit cost</th><th>Supplier</th><th>Notes</th></tr></thead><tbody>{% for row in import_preview %}<tr><td>{{ row.name }}</td><td>{% for value,label in list_choices %}{% if row.list_category == value %}{{ label }}{% endif %}{% endfor %}</td><td>{{ row.quantity }}</td><td>{% if row.unit_cost is None %}Not priced{% else %}{{ row.unit_cost }}{% endif %}</td><td>{{ row.supplier_name }}</td><td>{{ row.notes }}</td></tr>{% endfor %}</tbody></table></div>
+    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="confirm_import"><input type="hidden" name="import_token" value="{{ import_token }}"><button class="button" type="submit">Confirm import</button> <a href="{% url 'shopping_management' %}">Cancel</a></form>{% endif %}
+  </section>
+{% else %}<section class="card"><h2>Add an event first</h2><p>Create a wedding event before importing its shopping lists.</p><a class="button" href="{% url 'event_add' %}">Add an event</a></section>{% endif %}
+</main>
+{% endblock %}

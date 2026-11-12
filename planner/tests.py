@@ -744,11 +744,11 @@ class ShoppingListImportTests(TestCase):
 
     def preview(self, text):
         from django.core.files.uploadedfile import SimpleUploadedFile
-        return self.client.post(self.url, {'action': 'preview_import', 'list_category': 'decorations',
+        return self.client.post(reverse('shopping_management'), {'action': 'preview_import', 'event': self.event.pk, 'list_category': 'decorations',
             'file': SimpleUploadedFile('shopping.csv', text.encode('utf-8'), content_type='text/csv')})
 
     def confirm(self, response):
-        return self.client.post(self.url, {'action': 'confirm_import', 'import_token': response.context['import_token']})
+        return self.client.post(reverse('shopping_management'), {'action': 'confirm_import', 'import_token': response.context['import_token']})
 
     def test_preview_confirm_optional_prices_and_duplicate_skip(self):
         response = self.preview('Item,Quantity,List,Unit cost\nCandles,,,\nJuice,2,Drinks,3.50\nCandles,,,\n')
@@ -794,5 +794,23 @@ class ShoppingListImportTests(TestCase):
         other = Member.objects.create(first_name='Other', last_name='Member', email='other-import@example.com')
         budget = WeddingBudget.objects.create(member=other)
         event = WeddingEvent.objects.create(budget=budget, name='Private')
-        response = self.client.post(reverse('event_shopping_list', args=[event.pk]), {'action': 'confirm_import', 'import_token': 'invalid'})
-        self.assertEqual(response.status_code, 404)
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        response = self.client.post(reverse('shopping_management'), {'action': 'preview_import', 'event': event.pk, 'list_category': 'other', 'file': SimpleUploadedFile('items.csv', b'Item\nCandles')})
+        self.assertTrue(response.context['import_form'].errors)
+        self.assertFalse(event.shopping_items.exists())
+
+    def test_management_navigation_and_preselected_event(self):
+        self.assertContains(self.client.get(reverse('member_portal')), reverse('shopping_management'))
+        response = self.client.get(reverse('shopping_management'), {'event': self.event.pk})
+        self.assertEqual(response.context['import_form'].initial['event'], self.event.pk)
+        self.assertContains(response, 'Manage shopping lists')
+        self.assertContains(response, 'Download CSV template')
+        event_page = self.client.get(self.url)
+        self.assertContains(event_page, reverse('shopping_management'))
+        self.assertNotContains(event_page, 'name="action" value="preview_import"')
+
+    def test_management_requires_login_and_handles_no_events(self):
+        self.event.delete()
+        self.assertContains(self.client.get(reverse('shopping_management')), 'Add an event first')
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse('shopping_management')).status_code, 302)

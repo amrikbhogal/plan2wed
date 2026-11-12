@@ -16,7 +16,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.cache import never_cache
 
 from .forms import SeatingTableForm, MemberSignupForm, ShoppingListItemForm, VenueForm, WeddingBudgetForm, WeddingEventForm, WeddingGuestForm
-from .forms import ReceiptUploadForm, ReceiptItemFormSet, ShoppingImportForm
+from .forms import ReceiptUploadForm, ReceiptItemFormSet, ShoppingManagementImportForm
 from .shopping_import import read_shopping_csv
 from .receipts import scan_receipt, receipt_items
 from .notifications import notify_administrator
@@ -176,6 +176,58 @@ def event_form(request, event_id=None):
 
 @never_cache
 @login_required
+def shopping_management(request):
+    member = getattr(request.user, 'member_profile', None)
+    if member is None:
+        return redirect('member_portal')
+    events = WeddingEvent.objects.filter(budget__member=member).prefetch_related('shopping_items')
+    initial = {'list_category': request.GET.get('list', 'other')}
+    if request.GET.get('event', '').isdigit():
+        initial['event'] = get_object_or_404(events, pk=request.GET['event']).pk
+    import_form = ShoppingManagementImportForm(member=member, initial=initial)
+    preview = None
+    token = ''
+    event = None
+    key = 'shopping_management_import'
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'preview_import':
+            request.session.pop(key, None)
+            import_form = ShoppingManagementImportForm(request.POST, request.FILES, member=member)
+            if import_form.is_valid():
+                event = import_form.cleaned_data['event']
+                try:
+                    preview = read_shopping_csv(import_form.cleaned_data['file'], event, import_form.cleaned_data['list_category'])
+                    token = secrets.token_urlsafe(24)
+                    request.session[key] = {'token': token, 'event_id': event.pk, 'rows': preview}
+                except ValidationError as error:
+                    import_form.add_error(None, error)
+        elif action == 'confirm_import':
+            pending = request.session.get(key)
+            if not pending or request.POST.get('import_token') != pending['token']:
+                messages.error(request, 'This import review has expired or was already imported. Upload the CSV again.')
+                return redirect('shopping_management')
+            event = get_object_or_404(events, pk=pending['event_id'])
+            added = skipped = 0
+            with transaction.atomic():
+                for row in pending['rows']:
+                    if event.shopping_items.filter(name__iexact=row['name'], list_category=row['list_category']).exists():
+                        skipped += 1
+                        continue
+                    ShoppingListItem.objects.create(event=event, **row)
+                    added += 1
+            request.session.pop(key, None)
+            messages.success(request, f'Imported {added} items as To buy; skipped {skipped} duplicates.')
+            return redirect('event_shopping_list', event_id=event.pk)
+    return render(request, 'planner/shopping_management.html', {
+        'events': events, 'event': event, 'import_form': import_form,
+        'import_preview': preview, 'import_token': token,
+        'list_choices': ShoppingListItem.ListCategory.choices,
+    })
+
+
+@never_cache
+@login_required
 def event_shopping_list(request, event_id):
     member = getattr(request.user, "member_profile", None)
     if member is None:
@@ -186,10 +238,6 @@ def event_shopping_list(request, event_id):
     if selected_list not in ShoppingListItem.ListCategory.values:
         selected_list = ''
     items = all_items.filter(list_category=selected_list) if selected_list else all_items
-    import_form = ShoppingImportForm(initial={'list_category': selected_list or 'other'})
-    import_preview = None
-    import_token = ''
-    import_key = f'shopping_import_{event.pk}'
     receipt_form = ReceiptUploadForm()
     receipt_rows = None
     receipt_text = ''
@@ -200,33 +248,7 @@ def event_shopping_list(request, event_id):
 
     if request.method == "POST":
         action = request.POST.get("action")
-        if action == 'preview_import':
-            request.session.pop(import_key, None)
-            import_form = ShoppingImportForm(request.POST, request.FILES)
-            if import_form.is_valid():
-                try:
-                    import_preview = read_shopping_csv(import_form.cleaned_data['file'], event, import_form.cleaned_data['list_category'])
-                    import_token = secrets.token_urlsafe(24)
-                    request.session[import_key] = {'token': import_token, 'rows': import_preview}
-                except ValidationError as error:
-                    import_form.add_error(None, error)
-        elif action == 'confirm_import':
-            pending = request.session.get(import_key)
-            if not pending or request.POST.get('import_token') != pending['token']:
-                messages.error(request, 'This import review has expired or was already imported. Upload the CSV again.')
-            else:
-                added = skipped = 0
-                with transaction.atomic():
-                    for row in pending['rows']:
-                        if event.shopping_items.filter(name__iexact=row['name'], list_category=row['list_category']).exists():
-                            skipped += 1
-                            continue
-                        ShoppingListItem.objects.create(event=event, **row)
-                        added += 1
-                request.session.pop(import_key, None)
-                messages.success(request, f'Imported {added} items as To buy; skipped {skipped} duplicates.')
-            return redirect('event_shopping_list', event_id=event.pk)
-        elif action == "scan_receipt":
+        if action == "scan_receipt":
             receipt_form = ReceiptUploadForm(request.POST, request.FILES)
             if receipt_form.is_valid():
                 try:
@@ -297,9 +319,6 @@ def event_shopping_list(request, event_id):
         "items": items,
         "list_choices": ShoppingListItem.ListCategory.choices,
         "selected_list": selected_list,
-        "import_form": import_form,
-        "import_preview": import_preview,
-        "import_token": import_token,
         "unpriced_count": all_items.filter(unit_cost__isnull=True).count(),
         "receipt_form": receipt_form,
         "receipt_rows": receipt_rows,
