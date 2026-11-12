@@ -1,6 +1,13 @@
 {% extends 'planner/base.html' %}
 {% block title %}{{ event.name }} shopping list · Plan2Wed{% endblock %}
 {% block content %}
+<style>
+  .receipt-loading:not([hidden]){display:flex;align-items:center;gap:10px;margin:14px 0 0}
+  .receipt-spinner{display:inline-block;width:20px;height:20px;flex-shrink:0;border:3px solid #dce2dc;border-top-color:currentColor;border-radius:50%;animation:receipt-spin .8s linear infinite}
+  #receipt-scan-button:disabled{cursor:wait;opacity:.7}
+  @keyframes receipt-spin{to{transform:rotate(360deg)}}
+  @media(prefers-reduced-motion:reduce){.receipt-spinner{animation:none}}
+</style>
 <main class="page dashboard">
   <div class="heading-row"><div><a class="muted" href="{% url 'event_detail' event.id %}" style="font-size:13px">← Back to event</a><div class="eyebrow" style="margin-top:20px">Wedding event</div><h1>{{ event.name }}</h1><p class="muted" style="margin:0">{% if event.event_date %}{{ event.event_date|date:'F j, Y' }} · {% endif %}Shopping list for this event.</p></div></div>
   <section class="stats"><div class="stat"><div class="stat-label">Purchased total · counted as spent</div><div class="stat-value">{{ purchased_total|floatformat:2 }}</div></div><div class="stat"><div class="stat-label">To buy · counted as pending</div><div class="stat-value">{{ pending_total|floatformat:2 }}</div></div></section>
@@ -12,10 +19,11 @@
   <section id="receipt-scan" class="card form-card">
     <h2>Scan receipt</h2>
     <p class="muted">Upload a clear JPEG, PNG or TIFF photo (up to 8 MB). Review the suggestions before updating your list and budget. Photos are processed temporarily and are not saved.</p>
-    <form method="post" enctype="multipart/form-data">
+    <form id="receipt-upload-form" method="post" enctype="multipart/form-data">
       {% csrf_token %}<input type="hidden" name="action" value="scan_receipt">
       {{ receipt_form.as_p }}
-      <button class="button" type="submit">Scan and review receipt</button>
+      <button id="receipt-scan-button" class="button" type="submit">Scan and review receipt</button>
+      <p id="receipt-loading" class="receipt-loading muted" role="status" aria-live="polite" hidden><span class="receipt-spinner" aria-hidden="true"></span><span>Uploading and scanning your receipt… Please wait while we read the items and prices.</span></p>
     </form>
     {% if receipt_text %}<details><summary>Extracted receipt text</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere">{{ receipt_text }}</pre></details>{% endif %}
     {% if receipt_rows is not None %}
@@ -49,6 +57,29 @@
   </form></section>
 </main>
 <script>
+  const receiptUploadForm = document.getElementById('receipt-upload-form');
+  const receiptScanButton = document.getElementById('receipt-scan-button');
+  const receiptLoading = document.getElementById('receipt-loading');
+  let receiptScanning = false;
+  receiptUploadForm.addEventListener('submit', function (event) {
+    if (receiptScanning) {
+      event.preventDefault();
+      return;
+    }
+    receiptScanning = true;
+    receiptUploadForm.setAttribute('aria-busy', 'true');
+    receiptScanButton.disabled = true;
+    receiptScanButton.textContent = 'Scanning receipt…';
+    receiptLoading.hidden = false;
+  });
+  // Restore controls when the browser restores this page from its back cache.
+  window.addEventListener('pageshow', function () {
+    receiptScanning = false;
+    receiptUploadForm.removeAttribute('aria-busy');
+    receiptScanButton.disabled = false;
+    receiptScanButton.textContent = 'Scan and review receipt';
+    receiptLoading.hidden = true;
+  });
   const quantityInput = document.getElementById('id_quantity');
   const unitCostInput = document.getElementById('id_unit_cost');
   const lineTotal = document.getElementById('line-total');
