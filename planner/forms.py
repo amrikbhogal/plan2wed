@@ -193,11 +193,12 @@ class VenueForm(forms.ModelForm):
 class ShoppingListItemForm(forms.ModelForm):
     class Meta:
         model = ShoppingListItem
-        fields = ["name", "quantity", "unit_cost", "supplier_name", "supplier_contact", "supplier_email", "supplier_phone", "supplier_website", "notes"]
+        fields = ["name", "list_category", "quantity", "unit_cost", "supplier_name", "supplier_contact", "supplier_email", "supplier_phone", "supplier_website", "notes"]
         labels = {
             "name": "Item",
             "quantity": "Quantity",
-            "unit_cost": "Cost per item",
+            "unit_cost": "Cost per item (optional)",
+            "list_category": "Shopping list",
             "supplier_name": "Supplier name",
             "supplier_contact": "Supplier contact person",
             "supplier_email": "Supplier email",
@@ -292,6 +293,7 @@ class ReceiptItemForm(forms.Form):
     quantity = forms.IntegerField(min_value=1, max_value=2147483647)
     unit_cost = forms.DecimalField(min_value=0, max_digits=12, decimal_places=2)
     supplier_name = forms.CharField(max_length=160, required=False)
+    list_category = forms.ChoiceField(choices=ShoppingListItem.ListCategory.choices, initial=ShoppingListItem.ListCategory.OTHER, required=False, label="Shopping list")
 
     def __init__(self, *args, event, **kwargs):
         super().__init__(*args, **kwargs)
@@ -311,3 +313,8 @@ class BaseReceiptFormSet(forms.BaseFormSet):
 
 
 ReceiptItemFormSet = forms.formset_factory(ReceiptItemForm, formset=BaseReceiptFormSet, extra=0, max_num=50, validate_max=True, absolute_max=50)
+
+
+class ShoppingImportForm(forms.Form):
+    file = forms.FileField(label='CSV shopping list', widget=forms.FileInput(attrs={'accept': '.csv,text/csv'}))
+    list_category = forms.ChoiceField(choices=ShoppingListItem.ListCategory.choices, label='Default shopping list')

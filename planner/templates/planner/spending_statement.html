@@ -19,7 +19,7 @@
     <p class="muted">Event date: {{ section.event.event_date|date:'j F Y'|default:'Not set' }}</p>
     {% if section.items or section.event.other_spent %}
     <div class="table-card"><table><thead><tr><th scope="col">Description</th><th scope="col">Supplier</th><th scope="col">Quantity</th><th scope="col">Unit cost</th><th scope="col">Spent</th></tr></thead><tbody>
-      {% for item in section.items %}<tr><td>{{ item.name }}{% if item.notes %}<br><span class="muted">{{ item.notes }}</span>{% endif %}</td><td>{{ item.supplier_name|default:'—' }}</td><td>{{ item.quantity }}</td><td>{{ item.unit_cost|floatformat:2 }}</td><td>{{ item.total_cost|floatformat:2 }}</td></tr>{% endfor %}
+      {% for item in section.items %}<tr><td>{{ item.name }}{% if item.notes %}<br><span class="muted">{{ item.notes }}</span>{% endif %}</td><td>{{ item.supplier_name|default:'—' }}</td><td>{{ item.quantity }}</td><td>{% if item.unit_cost is None %}Not priced{% else %}{{ item.unit_cost|floatformat:2 }}{% endif %}</td><td>{% if item.unit_cost is None %}Not priced{% else %}{{ item.total_cost|floatformat:2 }}{% endif %}</td></tr>{% endfor %}
       {% if section.event.other_spent %}<tr><td>Other event spending</td><td>—</td><td>—</td><td>—</td><td>{{ section.event.other_spent|floatformat:2 }}</td></tr>{% endif %}
     </tbody><tfoot><tr><th scope="row" colspan="4">Event total spent</th><td><strong>{{ section.spent|floatformat:2 }}</strong></td></tr></tfoot></table></div>
     {% else %}<p class="muted">No spending recorded for this event.</p>{% endif %}

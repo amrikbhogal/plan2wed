@@ -731,3 +731,68 @@ class AccountEmailTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(Member.objects.filter(email='alex@example.com').count(), 1)
+
+
+class ShoppingListImportTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user(username='shopping-import')
+        member = Member.objects.create(user=user, first_name='A', last_name='B', email='import@example.com')
+        self.budget = WeddingBudget.objects.create(member=member, wedding_date=date(2027, 6, 12))
+        self.event = self.budget.events.get()
+        self.url = reverse('event_shopping_list', args=[self.event.pk])
+        self.client.force_login(user)
+
+    def preview(self, text):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        return self.client.post(self.url, {'action': 'preview_import', 'list_category': 'decorations',
+            'file': SimpleUploadedFile('shopping.csv', text.encode('utf-8'), content_type='text/csv')})
+
+    def confirm(self, response):
+        return self.client.post(self.url, {'action': 'confirm_import', 'import_token': response.context['import_token']})
+
+    def test_preview_confirm_optional_prices_and_duplicate_skip(self):
+        response = self.preview('Item,Quantity,List,Unit cost\nCandles,,,\nJuice,2,Drinks,3.50\nCandles,,,\n')
+        self.assertContains(response, 'Not priced')
+        self.assertFalse(self.event.shopping_items.exists())
+        self.assertEqual(self.confirm(response).status_code, 302)
+        self.assertEqual(self.event.shopping_items.count(), 2)
+        candle = self.event.shopping_items.get(name='Candles')
+        self.assertIsNone(candle.unit_cost)
+        self.assertEqual(candle.quantity, 1)
+        self.assertEqual(candle.list_category, 'decorations')
+        self.assertFalse(candle.is_purchased)
+        self.assertEqual(self.event.pending, Decimal('7.00'))
+        self.confirm(response)
+        self.assertEqual(self.event.shopping_items.count(), 2)
+
+    def test_invalid_csv_does_not_import_partial_rows(self):
+        for text in ['Item,Quantity\nCandles,1\nJuice,-2', 'Item,List\nCandles,Unknown',
+                     'Item,Event\nCandles,Another event', 'Item,Unit cost\nCandles,-1']:
+            with self.subTest(csv=text):
+                response = self.preview(text)
+                self.assertTrue(response.context['import_form'].errors)
+                self.assertFalse(self.event.shopping_items.exists())
+                self.assertIsNone(response.context['import_preview'])
+
+    def test_list_filter_keeps_event_totals(self):
+        ShoppingListItem.objects.create(event=self.event, name='Candles', list_category='decorations', unit_cost=2)
+        ShoppingListItem.objects.create(event=self.event, name='Juice', list_category='drinks', unit_cost=3)
+        response = self.client.get(self.url, {'list': 'decorations'})
+        self.assertEqual([item.name for item in response.context['items']], ['Candles'])
+        self.assertEqual(response.context['pending_total'], Decimal('5'))
+
+    def test_add_item_without_price(self):
+        response = self.client.post(self.url, {'action': 'add_item', 'name': 'Flowers', 'list_category': 'flowers', 'quantity': 1, 'unit_cost': ''})
+        self.assertEqual(response.status_code, 302)
+        item = self.event.shopping_items.get()
+        self.assertIsNone(item.unit_cost)
+        self.assertEqual(item.total_cost, 0)
+        self.assertContains(self.client.get(self.url), 'Not priced')
+
+    def test_cannot_import_into_another_members_event(self):
+        from .models import WeddingEvent
+        other = Member.objects.create(first_name='Other', last_name='Member', email='other-import@example.com')
+        budget = WeddingBudget.objects.create(member=other)
+        event = WeddingEvent.objects.create(budget=budget, name='Private')
+        response = self.client.post(reverse('event_shopping_list', args=[event.pk]), {'action': 'confirm_import', 'import_token': 'invalid'})
+        self.assertEqual(response.status_code, 404)

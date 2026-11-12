@@ -98,3 +98,26 @@ administrator, approve the test account, then request a reset from the sign-in
 page. Check delivery and spam folders. Email configuration must be completed
 before releasing these features; local automated tests use an in-memory backend
 and do not verify delivery to real inboxes.
+
+## Predefined shopping lists and CSV import
+
+Each event's shopping items can be assigned to Decorations, Flowers, Food & catering,
+Drinks, Clothing & accessories, Gifts & favours, Ceremony supplies, Stationery or
+Other. The list filter changes visible rows; event spending totals cover all lists.
+Existing items migrate to Other and retain their prices. New items may leave cost
+blank; these display Not priced and contribute zero to totals until priced.
+Receipt review includes a list dropdown and preserves matched items' lists.
+
+Import CSV from within the destination event. A downloadable template is provided.
+Headers: `Item,Quantity,List,Unit cost,Supplier,Notes`. Only Item is required.
+Quantity defaults to 1 and missing List uses the selected default. Optional Event
+values must match the open event; import other events from their own pages.
+Preview makes no changes. Confirm adds items as To buy, skipping case-insensitive
+duplicate names within the same event/list (including duplicates in the CSV).
+Invalid rows reject the whole preview. Limits: UTF-8 CSV, 1 MB, 200 rows.
+
+This feature **requires migration 0016** before restarting the production service.
+Back up the database, pull the release, run `python manage.py migrate` and
+`python manage.py collectstatic --noinput` in the service environment with
+`--settings=config.production`, then restart. Prices previously stored as zero
+remain zero; they are not silently changed to unknown prices.

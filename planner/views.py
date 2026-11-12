@@ -16,7 +16,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.cache import never_cache
 
 from .forms import SeatingTableForm, MemberSignupForm, ShoppingListItemForm, VenueForm, WeddingBudgetForm, WeddingEventForm, WeddingGuestForm
-from .forms import ReceiptUploadForm, ReceiptItemFormSet
+from .forms import ReceiptUploadForm, ReceiptItemFormSet, ShoppingImportForm
+from .shopping_import import read_shopping_csv
 from .receipts import scan_receipt, receipt_items
 from .notifications import notify_administrator
 from .models import SeatingTable, SeatingAssignment, Member, ShoppingListItem, Venue, WeddingBudget, WeddingEvent, WeddingGuest
@@ -180,18 +181,52 @@ def event_shopping_list(request, event_id):
     if member is None:
         return redirect("member_portal")
     event = get_object_or_404(WeddingEvent, pk=event_id, budget__member=member)
-    items = event.shopping_items.all()
+    all_items = event.shopping_items.all()
+    selected_list = request.GET.get('list', '')
+    if selected_list not in ShoppingListItem.ListCategory.values:
+        selected_list = ''
+    items = all_items.filter(list_category=selected_list) if selected_list else all_items
+    import_form = ShoppingImportForm(initial={'list_category': selected_list or 'other'})
+    import_preview = None
+    import_token = ''
+    import_key = f'shopping_import_{event.pk}'
     receipt_form = ReceiptUploadForm()
     receipt_rows = None
     receipt_text = ''
     receipt_token = ''
     receipt_key = f'receipt_review_{event.pk}'
     editing_item = get_object_or_404(ShoppingListItem, pk=request.GET["edit_item"], event=event) if request.GET.get("edit_item") else None
-    item_form = ShoppingListItemForm(instance=editing_item)
+    item_form = ShoppingListItemForm(instance=editing_item, initial={'list_category': selected_list or 'other'} if not editing_item else None)
 
     if request.method == "POST":
         action = request.POST.get("action")
-        if action == "scan_receipt":
+        if action == 'preview_import':
+            request.session.pop(import_key, None)
+            import_form = ShoppingImportForm(request.POST, request.FILES)
+            if import_form.is_valid():
+                try:
+                    import_preview = read_shopping_csv(import_form.cleaned_data['file'], event, import_form.cleaned_data['list_category'])
+                    import_token = secrets.token_urlsafe(24)
+                    request.session[import_key] = {'token': import_token, 'rows': import_preview}
+                except ValidationError as error:
+                    import_form.add_error(None, error)
+        elif action == 'confirm_import':
+            pending = request.session.get(import_key)
+            if not pending or request.POST.get('import_token') != pending['token']:
+                messages.error(request, 'This import review has expired or was already imported. Upload the CSV again.')
+            else:
+                added = skipped = 0
+                with transaction.atomic():
+                    for row in pending['rows']:
+                        if event.shopping_items.filter(name__iexact=row['name'], list_category=row['list_category']).exists():
+                            skipped += 1
+                            continue
+                        ShoppingListItem.objects.create(event=event, **row)
+                        added += 1
+                request.session.pop(import_key, None)
+                messages.success(request, f'Imported {added} items as To buy; skipped {skipped} duplicates.')
+            return redirect('event_shopping_list', event_id=event.pk)
+        elif action == "scan_receipt":
             receipt_form = ReceiptUploadForm(request.POST, request.FILES)
             if receipt_form.is_valid():
                 try:
@@ -204,6 +239,9 @@ def event_shopping_list(request, event_id):
                         if match:
                             row['existing_item'] = match.pk
                             row['supplier_name'] = match.supplier_name
+                            row['list_category'] = match.list_category
+                        else:
+                            row['list_category'] = selected_list or 'other'
                     receipt_rows = ReceiptItemFormSet(initial=suggestions, form_kwargs={'event': event}, prefix='receipt')
                     receipt_token = secrets.token_urlsafe(24)
                     request.session[receipt_key] = receipt_token
@@ -225,6 +263,7 @@ def event_shopping_list(request, event_id):
                         item = row.get('existing_item') or ShoppingListItem(event=event)
                         for field in ('name', 'quantity', 'unit_cost', 'supplier_name'):
                             setattr(item, field, row[field])
+                        item.list_category = row.get('list_category') or item.list_category or 'other'
                         item.is_purchased = True
                         item.save()
                 request.session.pop(receipt_key, None)
@@ -256,14 +295,20 @@ def event_shopping_list(request, event_id):
     return render(request, "planner/shopping_list.html", {
         "event": event,
         "items": items,
+        "list_choices": ShoppingListItem.ListCategory.choices,
+        "selected_list": selected_list,
+        "import_form": import_form,
+        "import_preview": import_preview,
+        "import_token": import_token,
+        "unpriced_count": all_items.filter(unit_cost__isnull=True).count(),
         "receipt_form": receipt_form,
         "receipt_rows": receipt_rows,
         "receipt_text": receipt_text,
         "receipt_token": receipt_token,
         "item_form": item_form,
         "editing_item": editing_item,
-        "purchased_total": sum((item.total_cost for item in items if item.is_purchased), 0),
-        "pending_total": sum((item.total_cost for item in items if not item.is_purchased), 0),
+        "purchased_total": sum((item.total_cost for item in all_items if item.is_purchased), 0),
+        "pending_total": sum((item.total_cost for item in all_items if not item.is_purchased), 0),
     })
 
 

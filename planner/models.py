@@ -188,10 +188,22 @@ class WeddingEvent(models.Model):
 
 
 class ShoppingListItem(models.Model):
+    class ListCategory(models.TextChoices):
+        DECORATIONS = 'decorations', 'Decorations'
+        FLOWERS = 'flowers', 'Flowers'
+        FOOD = 'food', 'Food & catering'
+        DRINKS = 'drinks', 'Drinks'
+        CLOTHING = 'clothing', 'Clothing & accessories'
+        GIFTS = 'gifts', 'Gifts & favours'
+        CEREMONY = 'ceremony', 'Ceremony supplies'
+        STATIONERY = 'stationery', 'Stationery'
+        OTHER = 'other', 'Other'
+
+    list_category = models.CharField(max_length=20, choices=ListCategory.choices, default=ListCategory.OTHER)
     event = models.ForeignKey(WeddingEvent, on_delete=models.CASCADE, related_name="shopping_items")
     name = models.CharField(max_length=160)
     quantity = models.PositiveIntegerField(default=1)
-    unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    unit_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, default=None, validators=[MinValueValidator(0)])
     notes = models.CharField(max_length=300, blank=True)
     supplier_name = models.CharField(max_length=160, blank=True)
     supplier_contact = models.CharField(max_length=120, blank=True)
@@ -211,7 +223,7 @@ class ShoppingListItem(models.Model):
 
     @property
     def total_cost(self):
-        return self.unit_cost * self.quantity
+        return (self.unit_cost or Decimal("0")) * self.quantity
 
 
 class WeddingGuest(models.Model):

@@ -45,8 +45,8 @@ class WeddingEventAdmin(admin.ModelAdmin):
 
 @admin.register(ShoppingListItem)
 class ShoppingListItemAdmin(admin.ModelAdmin):
-    list_display = ("name", "event", "quantity", "unit_cost", "total_cost", "supplier_name", "is_purchased")
-    list_filter = ("is_purchased",)
+    list_display = ("name", "event", "list_category", "quantity", "unit_cost", "total_cost", "supplier_name", "is_purchased")
+    list_filter = ("is_purchased", "list_category")
     search_fields = ("name", "event__name", "event__budget__member__email")
 
 
