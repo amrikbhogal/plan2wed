@@ -6,6 +6,11 @@
   .receipt-loading:not([hidden]){display:flex;align-items:center;gap:10px;margin:14px 0 0}
   .receipt-spinner{display:inline-block;width:20px;height:20px;flex-shrink:0;border:3px solid #dce2dc;border-top-color:currentColor;border-radius:50%;animation:receipt-spin .8s linear infinite}
   #receipt-scan-button:disabled{cursor:wait;opacity:.7}
+  .shopping-category{margin:14px 0;border:1px solid var(--line);border-radius:10px;background:var(--white);overflow:hidden}
+  .shopping-category>summary{padding:18px;cursor:pointer;font-weight:600;color:var(--green)}
+  .shopping-category>summary:focus-visible{outline:2px solid var(--green);outline-offset:-4px}
+  .shopping-category .table-card{border:0;border-top:1px solid var(--line);border-radius:0}
+  .category-controls:not([hidden]){display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
   @keyframes receipt-spin{to{transform:rotate(360deg)}}
   @media(prefers-reduced-motion:reduce){.receipt-spinner{animation:none}}
 </style>
@@ -13,12 +18,20 @@
   <div class="heading-row"><div><a class="muted" href="{% url 'event_detail' event.id %}" style="font-size:13px">← Back to event</a><div class="eyebrow" style="margin-top:20px">Wedding event</div><h1>{{ event.name }}</h1><p class="muted" style="margin:0">{% if event.event_date %}{{ event.event_date|date:'F j, Y' }} · {% endif %}Shopping list for this event.</p></div></div>
   <section class="stats"><div class="stat"><div class="stat-label">Purchased total · counted as spent</div><div class="stat-value">{{ purchased_total|floatformat:2 }}</div></div><div class="stat"><div class="stat-label">To buy · counted as pending</div><div class="stat-value">{{ pending_total|floatformat:2 }}</div></div></section>
   <p class="muted">Totals cover all shopping lists in this event.{% if unpriced_count %} {{ unpriced_count }} item{{ unpriced_count|pluralize }} not priced yet; their costs are excluded until entered.{% endif %}</p>
-  <form method="get" class="card"><label for="shopping-list-filter">Shopping list</label><select id="shopping-list-filter" name="list"><option value="">All lists</option>{% for value,label in list_choices %}<option value="{{ value }}" {% if selected_list == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select> <button class="button" type="submit">Show list</button></form>
-  <section class="table-card">
-    {% if items %}<table><thead><tr><th>Item</th><th>List</th><th>Qty</th><th>Unit cost</th><th>Total</th><th>Supplier</th><th>Notes</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-      {% for item in items %}<tr><td><strong>{% if item.is_purchased %}<s style="color:#898e88">{{ item.name }}</s>{% else %}{{ item.name }}{% endif %}</strong></td><td>{{ item.get_list_category_display }}</td><td>{{ item.quantity }}</td><td><span class="money-value">{% if item.unit_cost is None %}Not priced{% else %}{{ item.unit_cost|floatformat:2 }}{% endif %}</span></td><td><strong class="money-value">{% if item.unit_cost is None %}Not priced{% else %}{{ item.total_cost|floatformat:2 }}{% endif %}</strong></td><td>{% if item.supplier_name %}<strong>{{ item.supplier_name }}</strong>{% if item.supplier_contact %}<br>{{ item.supplier_contact }}{% endif %}{% if item.supplier_email %}<br><a class="email" href="mailto:{{ item.supplier_email }}">{{ item.supplier_email }}</a>{% endif %}{% if item.supplier_phone %}<br>{{ item.supplier_phone }}{% endif %}{% if item.supplier_website %}<br><a class="email" href="{{ item.supplier_website }}" target="_blank" rel="noopener">Website</a>{% endif %}{% else %}—{% endif %}</td><td>{{ item.notes|default:'—' }}</td><td><span class="status-pill {% if item.is_purchased %}active{% else %}pending{% endif %}">{% if item.is_purchased %}Purchased{% else %}To buy{% endif %}</span></td><td><a class="status-select" href="?edit_item={{ item.id }}#item-form"><svg class="button-icon" aria-hidden="true"><use href="#icon-pencil"></use></svg>Edit</a> <form method="post" style="display:inline">{% csrf_token %}<input type="hidden" name="action" value="toggle_item"><input type="hidden" name="item_id" value="{{ item.id }}"><button type="submit" class="status-select"><svg class="button-icon" aria-hidden="true"><use href="{% if item.is_purchased %}#icon-plus{% else %}#icon-check{% endif %}"></use></svg>{% if item.is_purchased %}Mark to buy{% else %}Mark purchased{% endif %}</button></form> <form method="post" style="display:inline"><input type="hidden" name="action" value="delete_item"><input type="hidden" name="item_id" value="{{ item.id }}">{% csrf_token %}<button type="submit" class="status-select button-danger" aria-label="Delete {{ item.name }}"><svg class="button-icon" aria-hidden="true"><use href="#icon-trash"></use></svg>Delete</button></form></td></tr>{% endfor %}
-    </tbody></table>{% else %}<div class="empty"><strong>Your list is empty</strong>Add the items you need for this event below.</div>{% endif %}
+  <form method="get" class="card"><label for="shopping-list-filter">Category</label><select id="shopping-list-filter" name="list"><option value="">All categories</option>{% for value,label in list_choices %}<option value="{{ value }}" {% if selected_list == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select> <button class="button" type="submit">Show category</button></form>
+  {% if item_groups %}
+  <div id="category-controls" class="category-controls" hidden><button class="status-select" type="button" data-categories-open="true">Expand all</button><button class="status-select" type="button" data-categories-open="false">Collapse all</button></div>
+  <section id="shopping-categories" aria-label="Shopping items by category">
+    {% for group in item_groups %}
+    <details class="shopping-category" {% if group.open %}open{% endif %}>
+      <summary>{{ group.label }} <span class="muted">({{ group.items|length }} item{{ group.items|length|pluralize }})</span></summary>
+      <div class="table-card"><table><thead><tr><th>Item</th><th>Qty</th><th>Unit cost</th><th>Total</th><th>Supplier</th><th>Notes</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+      {% for item in group.items %}<tr><td><strong>{% if item.is_purchased %}<s style="color:#898e88">{{ item.name }}</s>{% else %}{{ item.name }}{% endif %}</strong></td><td>{{ item.quantity }}</td><td><span class="money-value">{% if item.unit_cost is None %}Not priced{% else %}{{ item.unit_cost|floatformat:2 }}{% endif %}</span></td><td><strong class="money-value">{% if item.unit_cost is None %}Not priced{% else %}{{ item.total_cost|floatformat:2 }}{% endif %}</strong></td><td>{% if item.supplier_name %}<strong>{{ item.supplier_name }}</strong>{% if item.supplier_contact %}<br>{{ item.supplier_contact }}{% endif %}{% if item.supplier_email %}<br><a class="email" href="mailto:{{ item.supplier_email }}">{{ item.supplier_email }}</a>{% endif %}{% if item.supplier_phone %}<br>{{ item.supplier_phone }}{% endif %}{% if item.supplier_website %}<br><a class="email" href="{{ item.supplier_website }}" target="_blank" rel="noopener">Website</a>{% endif %}{% else %}—{% endif %}</td><td>{{ item.notes|default:'—' }}</td><td><span class="status-pill {% if item.is_purchased %}active{% else %}pending{% endif %}">{% if item.is_purchased %}Purchased{% else %}To buy{% endif %}</span></td><td><a class="status-select" href="?edit_item={{ item.id }}#item-form"><svg class="button-icon" aria-hidden="true"><use href="#icon-pencil"></use></svg>Edit</a> <form method="post" style="display:inline">{% csrf_token %}<input type="hidden" name="action" value="toggle_item"><input type="hidden" name="item_id" value="{{ item.id }}"><button type="submit" class="status-select"><svg class="button-icon" aria-hidden="true"><use href="{% if item.is_purchased %}#icon-plus{% else %}#icon-check{% endif %}"></use></svg>{% if item.is_purchased %}Mark to buy{% else %}Mark purchased{% endif %}</button></form> <form method="post" style="display:inline"><input type="hidden" name="action" value="delete_item"><input type="hidden" name="item_id" value="{{ item.id }}">{% csrf_token %}<button type="submit" class="status-select button-danger" aria-label="Delete {{ item.name }}"><svg class="button-icon" aria-hidden="true"><use href="#icon-trash"></use></svg>Delete</button></form></td></tr>{% endfor %}
+    </tbody></table></div>
+    </details>
+    {% endfor %}
   </section>
+  {% else %}<section class="table-card"><div class="empty"><strong>{% if selected_list %}No items in this category{% else %}Your list is empty{% endif %}</strong>Add the items you need for this event below.</div></section>{% endif %}
   <p><a class="button" href="{% url 'shopping_management' %}?event={{ event.pk }}{% if selected_list %}&amp;list={{ selected_list }}{% endif %}#shopping-import">Import shopping list</a></p>
   <section id="receipt-scan" class="card form-card">
     <h2>Scan receipt</h2>
@@ -62,6 +75,17 @@
   </form></section>
 </main>
 <script>
+  const categoryControls = document.getElementById('category-controls');
+  if (categoryControls) {
+    categoryControls.hidden = false;
+    categoryControls.addEventListener('click', function (event) {
+      const button = event.target.closest('[data-categories-open]');
+      if (!button) return;
+      document.querySelectorAll('#shopping-categories .shopping-category').forEach(function (category) {
+        category.open = button.dataset.categoriesOpen === 'true';
+      });
+    });
+  }
   const receiptUploadForm = document.getElementById('receipt-upload-form');
   const receiptScanButton = document.getElementById('receipt-scan-button');
   const receiptLoading = document.getElementById('receipt-loading');

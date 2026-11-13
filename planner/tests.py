@@ -840,3 +840,22 @@ class ShoppingListImportTests(TestCase):
         self.assertTrue(response.context['manual_form'].errors)
         self.assertContains(response, 'Candles')
         self.assertFalse(event.shopping_items.exists())
+
+    def test_items_grouped_by_category_with_counts_and_event_totals(self):
+        ShoppingListItem.objects.create(event=self.event, name='Candles', list_category='decorations', unit_cost=2)
+        ShoppingListItem.objects.create(event=self.event, name='Balloons', list_category='decorations', unit_cost=3, is_purchased=True)
+        ShoppingListItem.objects.create(event=self.event, name='Juice', list_category='drinks', unit_cost=4)
+        response = self.client.get(self.url)
+        groups = response.context['item_groups']
+        self.assertEqual([group['category'] for group in groups], ['decorations', 'drinks'])
+        self.assertEqual(len(groups[0]['items']), 2)
+        self.assertFalse(any(group['open'] for group in groups))
+        self.assertContains(response, '(2 items)')
+        self.assertContains(response, 'Expand all')
+        self.assertEqual(response.context['purchased_total'], Decimal('3'))
+        self.assertEqual(response.context['pending_total'], Decimal('6'))
+        filtered = self.client.get(self.url, {'list': 'drinks'})
+        self.assertEqual(len(filtered.context['item_groups']), 1)
+        self.assertTrue(filtered.context['item_groups'][0]['open'])
+        self.assertEqual(filtered.context['pending_total'], Decimal('6'))
+        self.assertNotContains(filtered, 'Balloons')

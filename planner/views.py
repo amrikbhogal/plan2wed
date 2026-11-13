@@ -324,9 +324,18 @@ def event_shopping_list(request, event_id):
             item.delete()
             return redirect("event_shopping_list", event_id=event.id)
 
+    grouped_items = {}
+    for item in items:
+        grouped_items.setdefault(item.list_category, []).append(item)
+    item_groups = [
+        {'category': category, 'label': label, 'items': grouped_items[category],
+         'open': selected_list == category or bool(editing_item and editing_item.list_category == category)}
+        for category, label in ShoppingListItem.ListCategory.choices if category in grouped_items
+    ]
     return render(request, "planner/shopping_list.html", {
         "event": event,
         "items": items,
+        "item_groups": item_groups,
         "list_choices": ShoppingListItem.ListCategory.choices,
         "selected_list": selected_list,
         "unpriced_count": all_items.filter(unit_cost__isnull=True).count(),

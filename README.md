@@ -103,7 +103,9 @@ and do not verify delivery to real inboxes.
 
 Each event's shopping items can be assigned to Decorations, Flowers, Food & catering,
 Drinks, Clothing & accessories, Gifts & favours, Ceremony supplies, Stationery or
-Other. The list filter changes visible rows; event spending totals cover all lists.
+Other. Items appear under expandable category headings with item counts and Expand all /
+Collapse all controls. The category filter changes visible groups and opens the
+selected group; event spending totals cover all lists.
 Existing items migrate to Other and retain their prices. New items may leave cost
 blank; these display Not priced and contribute zero to totals until priced.
 Receipt review includes a list dropdown and preserves matched items' lists.
