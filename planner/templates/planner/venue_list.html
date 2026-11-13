@@ -1,7 +1,8 @@
 {% extends 'planner/base.html' %}
-{% block title %}Venues · Plan2Wed<style>.table-card td:last-child{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.table-card td:last-child form{margin:0!important}.table-card td:last-child .status-select{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:92px;min-height:40px;padding:7px 12px;white-space:nowrap}</style>
+{% block title %}Venues · Plan2Wed
 {% endblock %}
 {% block content %}
+<style>.table-card td:last-child{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.table-card td:last-child form{margin:0!important}</style>
 <main class="page dashboard">
   <div class="heading-row"><div><a class="muted" href="{% url 'member_portal' %}#events" style="font-size:13px">← Back to your wedding plan</a><div class="eyebrow" style="margin-top:20px">Wedding plan</div><h1>Venues</h1><p class="muted" style="margin:0">Save venue details and assign a venue to each wedding event.</p></div><a class="button" href="#venue-form"><svg class="button-icon" aria-hidden="true"><use href="#icon-plus"></use></svg>Add a venue</a></div>
   <section class="table-card">
@@ -27,5 +28,5 @@
     {% if venue_form.non_field_errors %}<div class="form-error">{{ venue_form.non_field_errors }}</div>{% endif %}<div class="form-actions"><button class="button" type="submit"><svg class="button-icon" aria-hidden="true"><use href="{% if editing_venue %}#icon-save{% else %}#icon-plus{% endif %}"></use></svg>{% if editing_venue %}Save venue{% else %}Add venue{% endif %}</button>{% if editing_venue %} <a href="{% url 'venue_list' %}" class="status-select">Cancel</a>{% endif %}</div>
   </form></section>
 </main>
-<style>.table-card td:last-child{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.table-card td:last-child form{margin:0!important}.table-card td:last-child .status-select{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:92px;min-height:40px;padding:7px 12px;white-space:nowrap}</style>
+<style>.table-card td:last-child{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.table-card td:last-child form{margin:0!important}</style>
 {% endblock %}

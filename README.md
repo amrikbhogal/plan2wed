@@ -127,3 +127,7 @@ Back up the database, pull the release, run `python manage.py migrate` and
 `python manage.py collectstatic --noinput` in the service environment with
 `--settings=config.production`, then restart. Prices previously stored as zero
 remain zero; they are not silently changed to unknown prices.
+
+Shared button and native file-picker styles live in `planner/static/planner/buttons.css`.
+Collect static files when deploying UI changes to this stylesheet. Primary,
+secondary and delete actions share sizing, typography and focus indicators.

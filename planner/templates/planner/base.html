@@ -35,29 +35,8 @@
 .details-section .choice-list label{display:flex;align-items:center;gap:8px;overflow-wrap:anywhere}
 @media(max-width:600px){.details-section .choice-list{grid-template-columns:1fr}}
 
-/* Shared action styles */
-.form-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:20px}
-.button,.status-select,.nav .nav-cta{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  min-height:42px;padding:10px 18px;border:1px solid transparent;border-radius:999px;
-  font:500 13px/1.4 'DM Sans',sans-serif;letter-spacing:.1px;text-decoration:none;
-  cursor:pointer;vertical-align:middle;
-  transition:background-color .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease,transform .18s ease;
-}
-.button{background:var(--green);border-color:var(--green);color:white;box-shadow:0 2px 5px #233f3012}
-.button:hover{background:var(--green-dark);border-color:var(--green-dark);color:white;box-shadow:0 4px 10px #233f3020;transform:translateY(-1px)}
-.status-select,.nav .nav-cta{background:#f4f7f3;border-color:#dce5db;color:#3d5e4b;box-shadow:0 1px 2px #233f3006}
-.status-select:hover,.nav .nav-cta:hover{background:#e8efe5;border-color:#b9cbb9;color:#294a37;box-shadow:0 3px 8px #233f3010;transform:translateY(-1px)}
-select.status-select{display:inline-block;padding-right:28px}
-.button:active,.status-select:active,.nav .nav-cta:active{transform:translateY(0);box-shadow:none}
-.button:focus-visible,.status-select:focus-visible,.nav .nav-cta:focus-visible{outline:2px solid var(--green);outline-offset:3px;box-shadow:0 0 0 5px #416b5814}
-.button:disabled,.status-select:disabled,.nav .nav-cta:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
-.button .button-icon,.status-select .button-icon,.nav-cta .button-icon{width:15px;height:15px;opacity:.85}
-.button-danger{background:#fbf3f0;border-color:#ecd9d2;color:#975447}
-.button-danger:hover{background:#f5e5df;border-color:#d6afa3;color:#7c3e33}
-.button-danger:focus-visible{outline-color:#975447}
-@media(prefers-reduced-motion:reduce){.button,.status-select,.nav .nav-cta{transition:none}.button:hover,.status-select:hover,.nav .nav-cta:hover{transform:none}}
 </style>
+<link rel="stylesheet" href="{% static 'planner/buttons.css' %}">
 </head>
 <body class="{% block body_class %}{% endblock %}">
   <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
