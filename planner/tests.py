@@ -868,6 +868,11 @@ class ShoppingListImportTests(TestCase):
         response = self.client.get(self.url)
         group = response.context['item_groups'][0]
         self.assertEqual(group['total'], Decimal('10.00'))
+        self.assertEqual(group['committed'], Decimal('2.50'))
+        self.assertEqual(group['pending'], Decimal('7.50'))
+        self.assertEqual(group['total'], group['committed'] + group['pending'])
+        self.assertContains(response, 'Committed: <strong class="money-value">2.50</strong>')
+        self.assertContains(response, 'Pending: <strong class="money-value">7.50</strong>')
         self.assertEqual(group['unpriced_count'], 1)
         self.assertContains(response, '10.00</span>')
         self.assertContains(response, '(1 not priced)')

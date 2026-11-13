@@ -330,6 +330,8 @@ def event_shopping_list(request, event_id):
     item_groups = [
         {'category': category, 'label': label, 'items': grouped_items[category],
          'total': sum((item.total_cost for item in grouped_items[category]), Decimal('0')),
+         'committed': sum((item.total_cost for item in grouped_items[category] if item.is_purchased), Decimal('0')),
+         'pending': sum((item.total_cost for item in grouped_items[category] if not item.is_purchased), Decimal('0')),
          'unpriced_count': sum(item.unit_cost is None for item in grouped_items[category]),
          'open': selected_list == category or bool(editing_item and editing_item.list_category == category)}
         for category, label in ShoppingListItem.ListCategory.choices if category in grouped_items
