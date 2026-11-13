@@ -329,6 +329,8 @@ def event_shopping_list(request, event_id):
         grouped_items.setdefault(item.list_category, []).append(item)
     item_groups = [
         {'category': category, 'label': label, 'items': grouped_items[category],
+         'total': sum((item.total_cost for item in grouped_items[category]), Decimal('0')),
+         'unpriced_count': sum(item.unit_cost is None for item in grouped_items[category]),
          'open': selected_list == category or bool(editing_item and editing_item.list_category == category)}
         for category, label in ShoppingListItem.ListCategory.choices if category in grouped_items
     ]

@@ -859,3 +859,15 @@ class ShoppingListImportTests(TestCase):
         self.assertTrue(filtered.context['item_groups'][0]['open'])
         self.assertEqual(filtered.context['pending_total'], Decimal('6'))
         self.assertNotContains(filtered, 'Balloons')
+
+    def test_category_total_includes_purchases_and_flags_unpriced_items(self):
+        ShoppingListItem.objects.create(event=self.event, name='Candles', list_category='decorations', quantity=3, unit_cost=Decimal('2.50'))
+        ShoppingListItem.objects.create(event=self.event, name='Balloons', list_category='decorations', quantity=2, unit_cost=Decimal('1.25'), is_purchased=True)
+        ShoppingListItem.objects.create(event=self.event, name='Ribbon', list_category='decorations')
+        ShoppingListItem.objects.create(event=self.event, name='Juice', list_category='drinks', unit_cost=4)
+        response = self.client.get(self.url)
+        group = response.context['item_groups'][0]
+        self.assertEqual(group['total'], Decimal('10.00'))
+        self.assertEqual(group['unpriced_count'], 1)
+        self.assertContains(response, '10.00</span>')
+        self.assertContains(response, '(1 not priced)')
