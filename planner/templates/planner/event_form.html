@@ -3,6 +3,7 @@
 {% block content %}
 <main class="page dashboard">
   <div class="heading-row"><div><a class="muted" href="{% if event %}{% url 'event_detail' event.id %}{% else %}{% url 'member_portal' %}#events{% endif %}" style="font-size:13px">← Back to your wedding plan</a><div class="eyebrow" style="margin-top:20px">Wedding plan</div><h1>{% if event %}Update event{% else %}Add an event{% endif %}</h1><p class="muted" style="margin:0">Track the event date, venue, and costs. Shopping list amounts will be included automatically.</p></div></div>
+  {% if not event %}<p><a class="status-select" href="{% url 'event_catalogue' %}">Browse suggested events & shopping checklists</a></p>{% endif %}
   <section class="card form-card"><form method="post">{% csrf_token %}
     {% for field in form %}
     {% if field.name == 'name' %}<fieldset class="details-section"><legend>Event details</legend><div class="details-grid">{% elif field.name == 'other_spent' %}</div></fieldset><fieldset class="details-section"><legend>Costs &amp; notes</legend><div class="details-grid">{% endif %}

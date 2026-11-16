@@ -937,3 +937,74 @@ class VenueDirectoryTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertContains(self.client.get(reverse('venue_list')), self.url)
         self.assertContains(self.client.get(reverse('member_portal')), self.url)
+
+
+class EventCatalogueTests(TestCase):
+    def setUp(self):
+        from .models import EventTemplate, SuggestedShoppingItem
+        self.user = get_user_model().objects.create_user(username='event-browser')
+        self.member = Member.objects.create(user=self.user, first_name='A', last_name='B', email='event-browser@example.com')
+        self.template = EventTemplate.objects.create(name='Test Chunni', description='A family celebration', is_published=True)
+        self.item = SuggestedShoppingItem.objects.create(event_template=self.template, name='Chunni / scarf', list_category='clothing', quantity=1, notes='Choose with family')
+        self.extra = SuggestedShoppingItem.objects.create(event_template=self.template, name='Sweets', list_category='food')
+        self.url = reverse('event_template_detail', args=[self.template.pk])
+        self.client.force_login(self.user)
+
+    def test_choose_event_and_selected_unpriced_items_idempotently(self):
+        self.assertContains(self.client.get(self.url), 'Choose with family')
+        for _ in range(2):
+            response = self.client.post(self.url, {'items': [self.item.pk], 'event_date': '2027-06-10'})
+            self.assertEqual(response.status_code, 302)
+        event = self.member.wedding_budget.events.get(event_template=self.template)
+        self.assertEqual(event.name, 'Test Chunni')
+        self.assertEqual(event.event_date, date(2027, 6, 10))
+        self.assertEqual(event.shopping_items.count(), 1)
+        item = event.shopping_items.get()
+        self.assertEqual(item.name, 'Chunni / scarf')
+        self.assertEqual(item.list_category, 'clothing')
+        self.assertIsNone(item.unit_cost)
+        self.assertFalse(item.is_purchased)
+        self.assertEqual(event.pending, 0)
+
+    def test_add_to_existing_event_without_replacing_private_details(self):
+        from .models import WeddingEvent
+        budget = WeddingBudget.objects.create(member=self.member)
+        event = WeddingEvent.objects.create(budget=budget, name='Our family ceremony', notes='Private arrangements')
+        ShoppingListItem.objects.create(event=event, name='Chunni / scarf', list_category='clothing', quantity=2, unit_cost=25)
+        response = self.client.post(self.url, {'event': event.pk, 'items': [self.item.pk, self.extra.pk]})
+        self.assertEqual(response.status_code, 302)
+        event.refresh_from_db()
+        self.assertEqual(event.notes, 'Private arrangements')
+        self.assertEqual(event.shopping_items.count(), 2)
+        self.assertEqual(event.shopping_items.get(name='Chunni / scarf').unit_cost, Decimal('25'))
+        self.assertEqual(budget.events.count(), 1)
+
+    def test_hidden_templates_foreign_events_and_foreign_suggestions_rejected(self):
+        from .models import EventTemplate, SuggestedShoppingItem, WeddingEvent
+        hidden = EventTemplate.objects.create(name='Hidden event')
+        suggestion = SuggestedShoppingItem.objects.create(event_template=hidden, name='Other')
+        self.assertEqual(self.client.get(reverse('event_template_detail', args=[hidden.pk])).status_code, 404)
+        self.assertTrue(self.client.post(self.url, {'items': [suggestion.pk]}).context['form'].errors)
+        other = Member.objects.create(first_name='C', last_name='D', email='other-template@example.com')
+        event = WeddingEvent.objects.create(budget=WeddingBudget.objects.create(member=other), name='Private event')
+        response = self.client.post(self.url, {'event': event.pk, 'items': [self.item.pk]})
+        self.assertTrue(response.context['form'].errors)
+        self.assertFalse(event.shopping_items.exists())
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse('event_catalogue')).status_code, 302)
+
+    def test_seeded_chunni_and_admin_only_editing(self):
+        from .models import EventTemplate
+        chunni = EventTemplate.objects.get(name='Chunni Chadana')
+        self.assertTrue(chunni.is_published)
+        self.assertTrue(chunni.shopping_suggestions.filter(list_category='clothing').exists())
+        self.assertContains(self.client.get(reverse('event_catalogue')), 'Chunni Chadana')
+        self.assertEqual(self.client.get(reverse('admin:planner_eventtemplate_change', args=[chunni.pk])).status_code, 302)
+
+    def test_removing_template_keeps_member_event_and_items(self):
+        self.client.post(self.url, {'items': [self.item.pk]})
+        event = self.member.wedding_budget.events.get(event_template=self.template)
+        self.template.delete()
+        event.refresh_from_db()
+        self.assertIsNone(event.event_template)
+        self.assertEqual(event.shopping_items.count(), 1)

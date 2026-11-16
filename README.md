@@ -154,3 +154,26 @@ stop the application, pull the release, and run `python manage.py migrate --noin
 --settings=config.production` under the service account and environment. Run
 Django checks, then start the application. Add and publish the first listings
 through `/admin/planner/directoryvenue/` and test with a member account.
+
+## Suggested events and shopping checklists
+
+**Browse suggested events** on My account opens an administrator-maintained
+catalogue. Members review a ceremony and select optional shopping suggestions,
+then create a new event or add the selected items to one of their own events.
+Suggestions use the existing shopping categories, start To buy and unpriced,
+and can be edited in the shopping list. Reusing an event template does not
+create duplicate template events; items with matching names/categories are
+skipped without replacing quantities, costs, receipts or private notes.
+
+Administrators manage **Suggested events** at `/admin/planner/eventtemplate/`,
+including inline item names, categories, quantities and guidance notes. Draft
+entries are hidden. Removing a template leaves members' events and items intact.
+Migrations 0018–0019 add the tables and seed the existing ceremony summaries,
+with starter checklists including Chunni Chadana. All checklists are optional
+planning ideas, not religious requirements; confirm family customs and venue
+arrangements. Ceremony summaries include source links for background.
+
+Before deploying, back up the database, stop the app, pull the release, run
+`python manage.py migrate --noinput --settings=config.production` using the service
+account/environment, then restart. Review the seeded suggestions in admin and
+try selecting a Chunni event and checklist as a member. No static files changed.

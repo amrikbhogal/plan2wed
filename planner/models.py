@@ -163,7 +163,24 @@ class Venue(models.Model):
         return self.name
 
 
+class EventTemplate(models.Model):
+    name = models.CharField(max_length=120, unique=True)
+    description = models.TextField(blank=True)
+    guidance = models.TextField(blank=True, help_text='Family-specific guidance; suggestions are optional')
+    source_url = models.URLField(blank=True)
+    is_published = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'suggested event'
+        verbose_name_plural = 'suggested events'
+
+    def __str__(self):
+        return self.name
+
+
 class WeddingEvent(models.Model):
+    event_template = models.ForeignKey(EventTemplate, on_delete=models.SET_NULL, null=True, blank=True, editable=False, related_name="member_events")
     budget = models.ForeignKey(WeddingBudget, on_delete=models.CASCADE, related_name="events")
     venue = models.ForeignKey(Venue, on_delete=models.SET_NULL, null=True, blank=True, related_name="events")
     name = models.CharField(max_length=120)
@@ -179,6 +196,7 @@ class WeddingEvent(models.Model):
     class Meta:
         ordering = ["event_date", "name"]
         constraints = [
+            models.UniqueConstraint(fields=["budget", "event_template"], name="unique_member_event_template"),
             models.UniqueConstraint(fields=["budget"], condition=models.Q(is_wedding_day=True), name="one_wedding_day_per_budget"),
             models.UniqueConstraint(fields=["budget"], condition=models.Q(is_wedding_meal=True), name="one_wedding_meal_per_budget"),
         ]
@@ -258,6 +276,20 @@ class ShoppingListItem(models.Model):
     @property
     def total_cost(self):
         return (self.unit_cost or Decimal("0")) * self.quantity
+
+
+class SuggestedShoppingItem(models.Model):
+    event_template = models.ForeignKey(EventTemplate, on_delete=models.CASCADE, related_name='shopping_suggestions')
+    name = models.CharField(max_length=160)
+    list_category = models.CharField(max_length=20, choices=ShoppingListItem.ListCategory.choices, default=ShoppingListItem.ListCategory.OTHER)
+    quantity = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
+    notes = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        ordering = ['list_category', 'name', 'pk']
+
+    def __str__(self):
+        return self.name
 
 
 class WeddingGuest(models.Model):

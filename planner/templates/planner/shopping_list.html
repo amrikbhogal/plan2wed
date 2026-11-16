@@ -33,6 +33,7 @@
     {% endfor %}
   </section>
   {% else %}<section class="table-card"><div class="empty"><strong>{% if selected_list %}No items in this category{% else %}Your list is empty{% endif %}</strong>Add the items you need for this event below.</div></section>{% endif %}
+  <p><a class="status-select" href="{% url 'event_catalogue' %}">Browse event shopping suggestions</a></p>
   <p><a class="button" href="{% url 'shopping_management' %}?event={{ event.pk }}{% if selected_list %}&amp;list={{ selected_list }}{% endif %}#shopping-import">Import shopping list</a></p>
   <section id="receipt-scan" class="card form-card">
     <h2>Scan receipt</h2>

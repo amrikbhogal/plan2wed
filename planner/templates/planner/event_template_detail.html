@@ -1,0 +1,14 @@
+{% extends 'planner/base.html' %}
+{% block title %}{{ template.name }} suggestions · Plan2Wed{% endblock %}
+{% block content %}
+<main class="page dashboard">
+<div class="heading-row"><div><a class="muted" href="{% url 'event_catalogue' %}">← Suggested events</a><div class="eyebrow" style="margin-top:20px">Event & shopping ideas</div><h1>{{ template.name }}</h1><p class="muted">{{ template.description }}</p></div></div>
+<section class="card"><h2>Plan this event</h2><p class="muted">{{ template.guidance|linebreaksbr }}</p><p class="muted">Select only the items you want. These are suggestions, not requirements. Quantities are starting points; update them for your guests. Items are added as To buy with no cost until you enter one.</p>
+{% if template.source_url %}<p><a class="email" href="{{ template.source_url }}" target="_blank" rel="noopener noreferrer">Background on this ceremony</a></p>{% endif %}
+<form method="post">{% csrf_token %}{{ form.non_field_errors }}<div class="details-grid">
+{% include 'planner/includes/detail_field.html' with field=form.event %}
+{% include 'planner/includes/detail_field.html' with field=form.event_date %}
+</div><fieldset class="details-section"><legend>Choose shopping suggestions</legend><p class="muted">Matching items already in the event’s category will be skipped. Select an existing event to add items there, or create a new event.</p>{{ form.items.errors }}{{ form.items }}</fieldset>
+<div class="form-actions"><button class="button" type="submit">Add to my plan</button><a class="status-select" href="{% url 'event_catalogue' %}">Cancel</a></div></form>
+</section></main>
+{% endblock %}

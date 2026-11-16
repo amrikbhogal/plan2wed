@@ -22,7 +22,8 @@ from .forms import ReceiptUploadForm, ReceiptItemFormSet, ShoppingManagementImpo
 from .shopping_import import read_shopping_csv
 from .receipts import scan_receipt, receipt_items
 from .notifications import notify_administrator
-from .models import DirectoryVenue
+from .models import DirectoryVenue, EventTemplate
+from .forms import EventTemplatePlanForm
 from .forms import VenueDirectorySearchForm
 from .models import SeatingTable, SeatingAssignment, Member, ShoppingListItem, Venue, WeddingBudget, WeddingEvent, WeddingGuest
 
@@ -355,6 +356,41 @@ def event_shopping_list(request, event_id):
         "purchased_total": sum((item.total_cost for item in all_items if item.is_purchased), 0),
         "pending_total": sum((item.total_cost for item in all_items if not item.is_purchased), 0),
     })
+
+
+@never_cache
+@login_required
+def event_catalogue(request, template_id=None):
+    member = getattr(request.user, 'member_profile', None)
+    if member is None:
+        return redirect('member_portal')
+    if template_id is None:
+        templates = EventTemplate.objects.filter(is_published=True).prefetch_related('shopping_suggestions')
+        query = request.GET.get('q', '').strip()[:160]
+        if query:
+            templates = templates.filter(Q(name__icontains=query) | Q(description__icontains=query))
+        return render(request, 'planner/event_catalogue.html', {'templates': templates, 'query': query})
+    template = get_object_or_404(EventTemplate.objects.prefetch_related('shopping_suggestions'), pk=template_id, is_published=True)
+    initial = {'items': list(template.shopping_suggestions.values_list('pk', flat=True))}
+    if request.GET.get('event', '').isdigit():
+        initial['event'] = get_object_or_404(WeddingEvent, pk=request.GET['event'], budget__member=member).pk
+    form = EventTemplatePlanForm(request.POST if request.method == 'POST' else None, member=member, template=template, initial=initial)
+    if request.method == 'POST' and form.is_valid():
+        with transaction.atomic():
+            event = form.cleaned_data['event']
+            if event is None:
+                budget, _ = WeddingBudget.objects.get_or_create(member=member)
+                event, _ = WeddingEvent.objects.get_or_create(budget=budget, event_template=template, defaults={
+                    'name': template.name, 'description': template.description, 'event_date': form.cleaned_data['event_date'],
+                })
+            added = 0
+            for suggestion in form.cleaned_data['items']:
+                if not event.shopping_items.filter(name__iexact=suggestion.name, list_category=suggestion.list_category).exists():
+                    ShoppingListItem.objects.create(event=event, name=suggestion.name, list_category=suggestion.list_category, quantity=suggestion.quantity, notes=suggestion.notes)
+                    added += 1
+        messages.success(request, f'{added} suggested items added to {event.name}. Quantities and costs can be updated in its shopping list.')
+        return redirect('event_shopping_list', event_id=event.pk)
+    return render(request, 'planner/event_template_detail.html', {'template': template, 'form': form})
 
 
 @never_cache

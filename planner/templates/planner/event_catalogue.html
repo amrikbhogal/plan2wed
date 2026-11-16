@@ -1,0 +1,11 @@
+{% extends 'planner/base.html' %}
+{% block title %}Suggested events · Plan2Wed{% endblock %}
+{% block content %}
+<main class="page dashboard">
+<div class="heading-row"><div><a class="muted" href="{% url 'member_portal' %}#events">← Back to your wedding plan</a><div class="eyebrow" style="margin-top:20px">Explore</div><h1>Suggested events</h1><p class="muted">Choose events and shopping ideas that suit your family.</p></div><a class="button" href="{% url 'event_add' %}">Add your own event</a></div>
+<section class="card"><form method="get" class="search"><label for="event-search">Find an event</label><input id="event-search" type="search" name="q" value="{{ query }}" maxlength="160"><button class="button" type="submit">Search</button></form></section>
+<p class="muted">These are optional planning suggestions. Punjabi customs vary between families and are distinct from the Sikh marriage ceremony. Confirm arrangements with your family and Gurdwara where relevant.</p>
+<section class="table-card"><table><thead><tr><th>Event</th><th>About</th><th>Shopping ideas</th><th>Choose</th></tr></thead><tbody>
+{% for template in templates %}<tr><td><strong>{{ template.name }}</strong></td><td>{{ template.description }}</td><td>{{ template.shopping_suggestions.count }} suggested item{{ template.shopping_suggestions.count|pluralize }}</td><td><a class="button" href="{% url 'event_template_detail' template.pk %}">Review event & checklist</a></td></tr>{% empty %}<tr><td colspan="4">No suggested events found. You can add your own event or try a different search.</td></tr>{% endfor %}
+</tbody></table></section></main>
+{% endblock %}

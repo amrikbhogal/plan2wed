@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import DirectoryVenue, Member, ShoppingListItem, Venue, WeddingBudget, WeddingEvent, WeddingGuest
+from .models import EventTemplate, SuggestedShoppingItem, DirectoryVenue, Member, ShoppingListItem, Venue, WeddingBudget, WeddingEvent, WeddingGuest
 
 
 @admin.register(Member)
@@ -68,3 +68,17 @@ class DirectoryVenueAdmin(admin.ModelAdmin):
         ('Contact & photo', {'fields': ('contact_name', 'email', 'phone', 'website', 'photo_url')}),
         ('Visibility', {'fields': ('is_published',)}),
     )
+
+
+class SuggestedShoppingItemInline(admin.TabularInline):
+    model = SuggestedShoppingItem
+    extra = 1
+
+
+@admin.register(EventTemplate)
+class EventTemplateAdmin(admin.ModelAdmin):
+    list_display = ('name', 'is_published')
+    list_filter = ('is_published',)
+    search_fields = ('name', 'description')
+    list_editable = ('is_published',)
+    inlines = [SuggestedShoppingItemInline]

@@ -350,3 +350,20 @@ class VenueDirectorySearchForm(forms.Form):
         super().__init__(*args, **kwargs)
         from .models import DirectoryVenue
         self.fields['venue_type'].choices = [('', 'All venue types'), *DirectoryVenue.VenueType.choices]
+
+
+class SuggestedItemChoiceField(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, obj):
+        text = f'{obj.name} — {obj.quantity} · {obj.get_list_category_display()}'
+        return f'{text}. {obj.notes}' if obj.notes else text
+
+
+class EventTemplatePlanForm(forms.Form):
+    event = forms.ModelChoiceField(queryset=WeddingEvent.objects.none(), required=False, label='Add to event', empty_label='Create a new event from this suggestion')
+    event_date = forms.DateField(required=False, label='Date (for a new event)', widget=forms.DateInput(attrs={'type': 'date'}))
+    items = SuggestedItemChoiceField(queryset=ShoppingListItem.objects.none(), required=False, label='Suggested shopping items', widget=forms.CheckboxSelectMultiple(attrs={'class': 'choice-list'}))
+
+    def __init__(self, *args, member, template, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['event'].queryset = WeddingEvent.objects.filter(budget__member=member)
+        self.fields['items'].queryset = template.shopping_suggestions.all()
