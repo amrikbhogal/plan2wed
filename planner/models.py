@@ -112,7 +112,40 @@ class WeddingBudget(models.Model):
         return f"{self.member} wedding budget"
 
 
+class DirectoryVenue(models.Model):
+    class VenueType(models.TextChoices):
+        GURDWARA = 'gurdwara', 'Gurdwara'
+        HALL = 'hall', 'Reception hall'
+        HOTEL = 'hotel', 'Hotel'
+        RESTAURANT = 'restaurant', 'Restaurant'
+        OUTDOOR = 'outdoor', 'Outdoor venue'
+        OTHER = 'other', 'Other'
+
+    name = models.CharField(max_length=160)
+    venue_type = models.CharField(max_length=20, choices=VenueType.choices, default=VenueType.OTHER)
+    location = models.CharField(max_length=160, help_text='Town, city or region')
+    address = models.CharField(max_length=300, blank=True)
+    capacity = models.PositiveIntegerField(null=True, blank=True)
+    facilities = models.TextField(blank=True, help_text='For example: parking, accessible entrance, catering, accommodation')
+    description = models.TextField(blank=True)
+    contact_name = models.CharField(max_length=120, blank=True)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=40, blank=True)
+    website = models.URLField(blank=True)
+    photo_url = models.URLField(blank=True, help_text='Optional URL of an authorised venue photo')
+    is_published = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['name', 'pk']
+        verbose_name = 'directory venue'
+        verbose_name_plural = 'venue directory'
+
+    def __str__(self):
+        return self.name
+
+
 class Venue(models.Model):
+    directory_entry = models.ForeignKey(DirectoryVenue, on_delete=models.SET_NULL, null=True, blank=True, related_name="member_venues", editable=False)
     budget = models.ForeignKey(WeddingBudget, on_delete=models.CASCADE, related_name="venues")
     name = models.CharField(max_length=160)
     address = models.CharField(max_length=300, blank=True)
@@ -124,6 +157,7 @@ class Venue(models.Model):
 
     class Meta:
         ordering = ["name"]
+        constraints = [models.UniqueConstraint(fields=["budget", "directory_entry"], name="unique_member_directory_venue")]
 
     def __str__(self):
         return self.name

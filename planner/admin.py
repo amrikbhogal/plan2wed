@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Member, ShoppingListItem, Venue, WeddingBudget, WeddingEvent, WeddingGuest
+from .models import DirectoryVenue, Member, ShoppingListItem, Venue, WeddingBudget, WeddingEvent, WeddingGuest
 
 
 @admin.register(Member)
@@ -55,3 +55,16 @@ class WeddingGuestAdmin(admin.ModelAdmin):
     list_display = ("first_name", "last_name", "email", "rsvp_status", "budget")
     list_filter = ("rsvp_status",)
     search_fields = ("first_name", "last_name", "email", "budget__member__email")
+
+
+@admin.register(DirectoryVenue)
+class DirectoryVenueAdmin(admin.ModelAdmin):
+    list_display = ('name', 'venue_type', 'location', 'capacity', 'is_published')
+    list_filter = ('is_published', 'venue_type')
+    search_fields = ('name', 'location', 'address', 'facilities')
+    list_editable = ('is_published',)
+    fieldsets = (
+        ('Listing', {'fields': ('name', 'venue_type', 'location', 'address', 'capacity', 'description', 'facilities')}),
+        ('Contact & photo', {'fields': ('contact_name', 'email', 'phone', 'website', 'photo_url')}),
+        ('Visibility', {'fields': ('is_published',)}),
+    )

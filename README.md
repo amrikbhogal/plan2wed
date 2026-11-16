@@ -131,3 +131,26 @@ remain zero; they are not silently changed to unknown prices.
 Shared button and native file-picker styles live in `planner/static/planner/buttons.css`.
 Collect static files when deploying UI changes to this stylesheet. Primary,
 secondary and delete actions share sizing, typography and focus indicators.
+
+## Shared venue directory
+
+Administrators manage **Venue directory** in Django admin, independently of members.
+Add the venue name/type, location, optional capacity, facilities, description,
+contact details, website and an authorised photo URL. Listings start unpublished;
+only published listings appear in the members-only directory. No sample or
+unverified venues are inserted into production.
+
+Members open **Browse venue directory** from My account or Manage venues. They can
+search names/facilities, filter location/type/minimum capacity, and add a listing
+to their plan. Adding copies public contact details into their own venue records;
+repeat clicks do not create duplicates. Saved venues can be assigned to events
+through Manage venues and event editing. Private notes remain on the member's
+copy. Shared listing edits do not overwrite saved member details, and removing a
+shared listing does not remove member copies. Directory photos use external URLs;
+only publish images you are authorised to display.
+
+Deployment requires migration **0017** before restarting. Back up the live database,
+stop the application, pull the release, and run `python manage.py migrate --noinput
+--settings=config.production` under the service account and environment. Run
+Django checks, then start the application. Add and publish the first listings
+through `/admin/planner/directoryvenue/` and test with a member account.

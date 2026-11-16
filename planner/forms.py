@@ -338,3 +338,15 @@ class ShoppingManagementItemForm(ShoppingListItemForm):
     def __init__(self, *args, member, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['event'].queryset = WeddingEvent.objects.filter(budget__member=member)
+
+
+class VenueDirectorySearchForm(forms.Form):
+    query = forms.CharField(required=False, max_length=160, label='Name or facilities')
+    location = forms.CharField(required=False, max_length=160, label='Town, city or region')
+    venue_type = forms.ChoiceField(required=False, label='Venue type')
+    capacity = forms.IntegerField(required=False, min_value=1, label='Minimum guest capacity')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .models import DirectoryVenue
+        self.fields['venue_type'].choices = [('', 'All venue types'), *DirectoryVenue.VenueType.choices]

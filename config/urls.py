@@ -37,6 +37,7 @@ urlpatterns = [
     path('my-account/spending-statement/', planner_views.spending_statement, name='spending_statement'),
     path('my-account/guests/', planner_views.guest_list, name='guest_list'),
     path('my-account/shopping/', planner_views.shopping_management, name='shopping_management'),
+    path('my-account/venue-directory/', planner_views.venue_directory, name='venue_directory'),
     path('my-account/venues/', planner_views.venue_list, name='venue_list'),
     path('my-account/events/add/', planner_views.event_form, name='event_add'),
     path('my-account/events/<int:event_id>/', planner_views.event_detail, name='event_detail'),

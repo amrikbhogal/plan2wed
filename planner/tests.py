@@ -876,3 +876,64 @@ class ShoppingListImportTests(TestCase):
         self.assertEqual(group['unpriced_count'], 1)
         self.assertContains(response, '10.00</span>')
         self.assertContains(response, '(1 not priced)')
+
+
+class VenueDirectoryTests(TestCase):
+    def setUp(self):
+        from .models import DirectoryVenue
+        self.user = get_user_model().objects.create_user(username='venue-browser')
+        self.member = Member.objects.create(user=self.user, first_name='A', last_name='B', email='venues@example.com')
+        self.listing = DirectoryVenue.objects.create(name='Example Hall', location='Ipswich', venue_type='hall', capacity=200, facilities='Accessible parking', address='Example address', is_published=True)
+        self.draft = DirectoryVenue.objects.create(name='Draft venue', location='London')
+        self.url = reverse('venue_directory')
+        self.client.force_login(self.user)
+
+    def test_browse_published_venues_and_filter(self):
+        self.assertContains(self.client.get(self.url), 'Example Hall')
+        self.assertNotContains(self.client.get(self.url), 'Draft venue')
+        self.assertContains(self.client.get(self.url, {'location': 'ipswich', 'capacity': 150, 'venue_type': 'hall', 'query': 'parking'}), 'Example Hall')
+        self.assertNotContains(self.client.get(self.url, {'capacity': 300}), 'Example Hall')
+        self.assertTrue(self.client.get(self.url, {'capacity': '-1'}).context['search_form'].errors)
+
+    def test_save_is_private_and_idempotent(self):
+        from .models import Venue
+        self.client.post(self.url, {'venue_id': self.listing.pk})
+        self.client.post(self.url, {'venue_id': self.listing.pk})
+        venue = Venue.objects.get(budget__member=self.member)
+        self.assertEqual(venue.directory_entry, self.listing)
+        self.assertEqual(venue.name, 'Example Hall')
+        venue.notes = 'Private booking details'
+        venue.save()
+        self.listing.name = 'Updated shared name'
+        self.listing.save()
+        self.client.post(self.url, {'venue_id': self.listing.pk})
+        venue.refresh_from_db()
+        self.assertEqual(venue.name, 'Example Hall')
+        self.assertEqual(venue.notes, 'Private booking details')
+        self.assertNotContains(self.client.get(self.url), 'Private booking details')
+        other_user = get_user_model().objects.create_user(username='another-browser')
+        other = Member.objects.create(user=other_user, first_name='C', last_name='D', email='other-venues@example.com')
+        self.client.force_login(other_user)
+        self.client.post(self.url, {'venue_id': self.listing.pk})
+        self.assertEqual(Venue.objects.count(), 2)
+        self.assertEqual(Venue.objects.get(budget__member=other).notes, '')
+
+    def test_draft_cannot_be_added_and_anonymous_cannot_browse(self):
+        self.assertEqual(self.client.post(self.url, {'venue_id': self.draft.pk}).status_code, 404)
+        self.assertEqual(self.client.post(self.url, {'venue_id': 'invalid'}).status_code, 404)
+        self.client.logout()
+        self.assertEqual(self.client.get(self.url).status_code, 302)
+
+    def test_listing_deletion_keeps_members_saved_venue(self):
+        from .models import Venue
+        self.client.post(self.url, {'venue_id': self.listing.pk})
+        self.listing.delete()
+        venue = Venue.objects.get(budget__member=self.member)
+        self.assertIsNone(venue.directory_entry)
+        self.assertEqual(venue.name, 'Example Hall')
+
+    def test_member_cannot_edit_shared_listing(self):
+        response = self.client.get(reverse('admin:planner_directoryvenue_change', args=[self.listing.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.assertContains(self.client.get(reverse('venue_list')), self.url)
+        self.assertContains(self.client.get(reverse('member_portal')), self.url)

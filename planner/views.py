@@ -11,6 +11,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import IntegrityError, transaction
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -21,6 +22,8 @@ from .forms import ReceiptUploadForm, ReceiptItemFormSet, ShoppingManagementImpo
 from .shopping_import import read_shopping_csv
 from .receipts import scan_receipt, receipt_items
 from .notifications import notify_administrator
+from .models import DirectoryVenue
+from .forms import VenueDirectorySearchForm
 from .models import SeatingTable, SeatingAssignment, Member, ShoppingListItem, Venue, WeddingBudget, WeddingEvent, WeddingGuest
 
 
@@ -351,6 +354,44 @@ def event_shopping_list(request, event_id):
         "editing_item": editing_item,
         "purchased_total": sum((item.total_cost for item in all_items if item.is_purchased), 0),
         "pending_total": sum((item.total_cost for item in all_items if not item.is_purchased), 0),
+    })
+
+
+@never_cache
+@login_required
+def venue_directory(request):
+    member = getattr(request.user, 'member_profile', None)
+    if member is None:
+        return redirect('member_portal')
+    if request.method == 'POST':
+        listing = get_object_or_404(DirectoryVenue, pk=request.POST.get('venue_id') if request.POST.get('venue_id', '').isdigit() else None, is_published=True)
+        budget, _ = WeddingBudget.objects.get_or_create(member=member)
+        _, created = Venue.objects.get_or_create(budget=budget, directory_entry=listing, defaults={
+            'name': listing.name, 'address': listing.address, 'contact_name': listing.contact_name,
+            'email': listing.email, 'phone': listing.phone, 'website': listing.website,
+        })
+        messages.success(request, 'Venue added to your plan. Open Manage venues to assign it to an event.' if created else 'This venue is already in your plan.')
+        return redirect('venue_directory')
+    venues = DirectoryVenue.objects.filter(is_published=True)
+    search_form = VenueDirectorySearchForm(request.GET)
+    if search_form.is_valid():
+        filters = search_form.cleaned_data
+        if filters['query']:
+            venues = venues.filter(Q(name__icontains=filters['query']) | Q(facilities__icontains=filters['query']) | Q(description__icontains=filters['query']))
+        if filters['location']:
+            venues = venues.filter(Q(location__icontains=filters['location']) | Q(address__icontains=filters['location']))
+        if filters['venue_type']:
+            venues = venues.filter(venue_type=filters['venue_type'])
+        if filters['capacity']:
+            venues = venues.filter(capacity__gte=filters['capacity'])
+    else:
+        venues = venues.none()
+    page = Paginator(venues, 12).get_page(request.GET.get('page'))
+    query_params = request.GET.copy()
+    query_params.pop('page', None)
+    return render(request, 'planner/venue_directory.html', {
+        'search_form': search_form, 'page_obj': page, 'query_params': query_params.urlencode(),
+        'saved_venue_ids': set(Venue.objects.filter(budget__member=member, directory_entry__isnull=False).values_list('directory_entry_id', flat=True)),
     })
 
 

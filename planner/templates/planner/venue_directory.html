@@ -1,0 +1,33 @@
+{% extends 'planner/base.html' %}
+{% block title %}Venue directory · Plan2Wed{% endblock %}
+{% block content %}
+<style>
+.venue-directory-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:24px}
+.directory-venue{min-width:0;overflow-wrap:anywhere;display:flex;flex-direction:column;gap:12px}
+.directory-venue h2,.directory-venue p{margin:0}
+.directory-venue img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px}
+.directory-venue .form-actions{margin-top:auto;padding-top:8px}
+.directory-contact{display:flex;gap:10px;flex-wrap:wrap;font-size:13px}
+.directory-pagination{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:24px}
+@media(max-width:700px){.venue-directory-grid{grid-template-columns:1fr}}
+</style>
+<main class="page dashboard">
+<div class="heading-row"><div><a class="muted" href="{% url 'member_portal' %}#events">← Back to your wedding plan</a><div class="eyebrow" style="margin-top:20px">Explore</div><h1>Venue directory</h1><p class="muted">Browse possible venues and add your favourites to your plan.</p></div><a class="button" href="{% url 'venue_list' %}">Manage my venues</a></div>
+<section class="card"><h2>Find a venue</h2><form method="get">{{ search_form.non_field_errors }}<div class="details-grid">{% for field in search_form %}{% include 'planner/includes/detail_field.html' with field=field %}{% endfor %}</div><div class="form-actions"><button class="button" type="submit">Search venues</button><a class="status-select" href="{% url 'venue_directory' %}">Clear filters</a></div></form></section>
+<p class="muted">{{ page_obj.paginator.count }} venue{{ page_obj.paginator.count|pluralize }} found. Contact venues directly to confirm availability, capacity and facilities.</p>
+{% if page_obj %}<section class="venue-directory-grid" aria-label="Venue listings">
+{% for venue in page_obj %}<article class="card directory-venue">
+{% if venue.photo_url %}<img src="{{ venue.photo_url }}" alt="{{ venue.name }}" loading="lazy" referrerpolicy="no-referrer">{% endif %}
+<div><span class="status-pill active">{{ venue.get_venue_type_display }}</span><h2 style="margin-top:10px">{{ venue.name }}</h2></div>
+<p><strong>{{ venue.location }}</strong>{% if venue.address %}<br><span class="muted">{{ venue.address }}</span>{% endif %}</p>
+<p class="muted">{% if venue.capacity %}Capacity: {{ venue.capacity }} guests{% else %}Contact venue for capacity{% endif %}</p>
+{% if venue.description %}<p>{{ venue.description|linebreaksbr }}</p>{% endif %}
+{% if venue.facilities %}<div><strong>Facilities</strong><p class="muted">{{ venue.facilities|linebreaksbr }}</p></div>{% endif %}
+{% if venue.contact_name %}<p>Contact: {{ venue.contact_name }}</p>{% endif %}
+<div class="directory-contact">{% if venue.website %}<a class="status-select" href="{{ venue.website }}" target="_blank" rel="noopener noreferrer">Visit website</a>{% endif %}{% if venue.email %}<a class="status-select" href="mailto:{{ venue.email }}">Email venue</a>{% endif %}{% if venue.phone %}<span>{{ venue.phone }}</span>{% endif %}</div>
+<div class="form-actions">{% if venue.pk in saved_venue_ids %}<span class="status-pill active">Added to your plan</span><a class="status-select" href="{% url 'venue_list' %}">Manage venue</a>{% else %}<form method="post">{% csrf_token %}<input type="hidden" name="venue_id" value="{{ venue.pk }}"><button class="button" type="submit">Add to my plan</button></form>{% endif %}</div>
+</article>{% endfor %}</section>
+{% else %}<section class="card empty"><strong>No venues found</strong>Try different filters. New listings will appear here when published by an administrator.</section>{% endif %}
+{% if page_obj.has_other_pages %}<nav class="directory-pagination" aria-label="Venue directory pages">{% if page_obj.has_previous %}<a class="status-select" href="?{{ query_params }}&amp;page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}<span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a class="status-select" href="?{{ query_params }}&amp;page={{ page_obj.next_page_number }}">Next</a>{% endif %}</nav>{% endif %}
+</main>
+{% endblock %}
