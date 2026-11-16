@@ -37,7 +37,7 @@
       <p class="muted" style="font-size:13px;margin:0">Are you one of the couple, or planning on their behalf? Choose a shared couple login or an individual planner login.</p>
       {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
       <form method="post" novalidate>{% csrf_token %}
-        <div class="field"><label for="{{ form.signup_role.id_for_label }}">{{ form.signup_role.label }}</label>{{ form.signup_role }}{{ form.signup_role.errors }}</div>
+        <fieldset class="field signup-role-field"><legend>{{ form.signup_role.label }}</legend>{{ form.signup_role }}{{ form.signup_role.errors }}</fieldset>
 <div class="details-grid couple-details"><fieldset class="details-section"><legend>Bride’s details</legend><div class="signup-contact-fields">
 {% include 'planner/includes/detail_field.html' with field=form.bride_name %}
 {% include 'planner/includes/detail_field.html' with field=form.bride_email %}
@@ -90,8 +90,15 @@
 .signup-dialog form>.field:first-child{margin-top:18px}
 .signup-dialog .field{margin-top:13px}
 .signup-dialog .field label{font-size:12px;color:#515b53}
-.signup-dialog .field input,.signup-dialog .field select{height:44px;border:1px solid #dfe3dc;border-radius:7px;background:#fff;padding:0 12px;font:14px 'DM Sans',sans-serif;transition:border-color .15s,box-shadow .15s}
-.signup-dialog .field input:focus,.signup-dialog .field select:focus{border-color:var(--green);box-shadow:0 0 0 3px #416b5817;outline:0}
+.signup-dialog .field input:not([type=radio]):not([type=checkbox]),.signup-dialog .field select{height:44px;border:1px solid #dfe3dc;border-radius:7px;background:#fff;padding:0 12px;font:14px 'DM Sans',sans-serif;transition:border-color .15s,box-shadow .15s}
+.signup-dialog .field input:not([type=radio]):not([type=checkbox]):focus,.signup-dialog .field select:focus{border-color:var(--green);box-shadow:0 0 0 3px #416b5817;outline:0}
+.signup-role-field{min-width:0;padding:0;border:0;margin:18px 0 0}
+.signup-role-field legend{padding:0;margin-bottom:10px;font-size:13px;font-weight:600;color:var(--ink)}
+.signup-dialog .signup-role-field .choice-list label{align-items:center;min-height:48px;padding:12px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:14px;cursor:pointer}
+.signup-dialog .signup-role-field .choice-list label:has(input:checked){border-color:var(--green);background:#f1f6ef}
+.signup-dialog .signup-role-field .choice-list input[type=radio]{appearance:auto;-webkit-appearance:radio;width:20px;height:20px;min-width:20px;min-height:20px;flex:0 0 20px;padding:0;margin:0;border:initial;border-radius:50%;background:initial;accent-color:var(--green);color-scheme:light;box-shadow:none}
+.signup-dialog .signup-role-field .choice-list input[type=radio]:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+@media(max-width:760px){.signup-dialog .field input:not([type=radio]):not([type=checkbox]),.signup-dialog .field select{font-size:16px}}
 .signup-dialog .name-fields{gap:15px}
 .signup-dialog .button.full{min-height:46px;margin-top:24px;box-shadow:0 7px 18px #416b5826}
 .signup-dialog .fineprint{font-size:11px;line-height:1.6;margin-top:12px}
