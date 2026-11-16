@@ -1,0 +1,12 @@
+<style>
+.admin-tabs{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 24px}
+.admin-tabs [aria-current=page]{background:var(--green);color:white;border-color:var(--green)}
+.admin-catalogue .field input[type=checkbox]{appearance:auto;width:20px;height:20px;padding:0;accent-color:var(--green)}
+.admin-row-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.admin-row-actions form{margin:0}
+</style>
+<nav class="admin-tabs" aria-label="Administration">
+<a class="status-select" href="{% url 'member_list' %}" {% if not admin_section %}aria-current="page"{% endif %}>Members</a>
+<a class="status-select" href="{% url 'admin_venues' %}" {% if admin_section == 'venues' %}aria-current="page"{% endif %}>Venues</a>
+<a class="status-select" href="{% url 'admin_shopping' %}" {% if admin_section == 'shopping' %}aria-current="page"{% endif %}>Events & shopping lists</a>
+</nav>

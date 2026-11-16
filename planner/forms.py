@@ -3,7 +3,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 
-from .models import SeatingTable, SeatingAssignment, Member, ShoppingListItem, Venue, WeddingBudget, WeddingEvent, WeddingGuest
+from .models import DirectoryVenue, EventTemplate, SuggestedShoppingItem, SeatingTable, SeatingAssignment, Member, ShoppingListItem, Venue, WeddingBudget, WeddingEvent, WeddingGuest
 
 
 class MemberSignupForm(forms.ModelForm):
@@ -367,3 +367,26 @@ class EventTemplatePlanForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.fields['event'].queryset = WeddingEvent.objects.filter(budget__member=member)
         self.fields['items'].queryset = template.shopping_suggestions.all()
+
+
+class DirectoryVenueAdminForm(forms.ModelForm):
+    class Meta:
+        model = DirectoryVenue
+        fields = ['name', 'venue_type', 'location', 'address', 'capacity', 'description', 'facilities', 'contact_name', 'email', 'phone', 'website', 'photo_url', 'is_published']
+        widgets = {'description': forms.Textarea(attrs={'rows': 3}), 'facilities': forms.Textarea(attrs={'rows': 3})}
+        labels = {'is_published': 'Published (visible to members)'}
+
+
+class EventTemplateAdminForm(forms.ModelForm):
+    class Meta:
+        model = EventTemplate
+        fields = ['name', 'description', 'guidance', 'source_url', 'is_published']
+        widgets = {'description': forms.Textarea(attrs={'rows': 3}), 'guidance': forms.Textarea(attrs={'rows': 3})}
+        labels = {'is_published': 'Published (visible to members)'}
+
+
+class SuggestedShoppingItemAdminForm(forms.ModelForm):
+    class Meta:
+        model = SuggestedShoppingItem
+        fields = ['name', 'list_category', 'quantity', 'notes']
+        labels = {'list_category': 'Shopping category'}

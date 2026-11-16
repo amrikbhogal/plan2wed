@@ -1,0 +1,5 @@
+{% extends 'planner/base.html' %}
+{% block title %}Confirm deletion · Plan2Wed{% endblock %}
+{% block content %}
+<main class="page success-wrap"><section class="card"><h1>Delete {{ object }}?</h1><p>{{ message }}</p><form method="post">{% csrf_token %}<input type="hidden" name="action" value="confirm_delete"><input type="hidden" name="{{ record_field }}" value="{{ record_id }}"><div class="form-actions"><button class="status-select button-danger" type="submit">Confirm deletion</button><a class="status-select" href="{{ cancel_url }}">Cancel</a></div></form></section></main>
+{% endblock %}

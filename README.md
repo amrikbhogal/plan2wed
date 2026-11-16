@@ -177,3 +177,18 @@ Before deploying, back up the database, stop the app, pull the release, run
 `python manage.py migrate --noinput --settings=config.production` using the service
 account/environment, then restart. Review the seeded suggestions in admin and
 try selecting a Chunni event and checklist as a member. No static files changed.
+
+## In-app catalogue administration
+
+Staff can use **Administration** in the app header, with tabs for Members,
+Venues, and Events & shopping lists. This uses the same active-staff access gate
+as member administration and works without a member profile. The full Django
+admin remains available.
+
+Venues supports search, adding/editing shared listings, publication control and
+confirmed deletion. Events & shopping lists supports adding/editing suggested
+events, publication control, and adding/editing/removing checklist items with
+categories, quantities and notes. Select Manage checklist for an event to edit
+its suggestions. Unpublishing hides a catalogue entry from members. Shared
+changes never overwrite copies members already added to their private plans.
+No new migration or static-file collection is needed for these screens.

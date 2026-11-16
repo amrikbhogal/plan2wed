@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import path
 from planner import views as planner_views
+from planner import catalogue_admin_views
 from planner.account_views import MemberPasswordResetView
 
 urlpatterns = [
@@ -46,6 +47,8 @@ urlpatterns = [
     path('my-account/events/<int:event_id>/edit/', planner_views.event_form, name='event_edit'),
     path('my-account/events/<int:event_id>/shopping/', planner_views.event_shopping_list, name='event_shopping_list'),
     path('my-account/events/<int:event_id>/tables/', planner_views.table_plan, name='table_plan'),
+    path('administration/venues/', catalogue_admin_views.venues, name='admin_venues'),
+    path('administration/shopping-lists/', catalogue_admin_views.shopping, name='admin_shopping'),
     path('members/', planner_views.member_list, name='member_list'),
     path('members/<int:member_id>/status/', planner_views.member_status, name='member_status'),
     path('admin/', admin.site.urls),

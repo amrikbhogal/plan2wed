@@ -1008,3 +1008,83 @@ class EventCatalogueTests(TestCase):
         event.refresh_from_db()
         self.assertIsNone(event.event_template)
         self.assertEqual(event.shopping_items.count(), 1)
+
+
+class InAppCatalogueAdminTests(TestCase):
+    def setUp(self):
+        self.staff = get_user_model().objects.create_user(username='catalogue-admin', is_staff=True)
+        self.venues_url = reverse('admin_venues')
+        self.shopping_url = reverse('admin_shopping')
+        self.client.force_login(self.staff)
+
+    def test_staff_without_member_profile_can_create_and_edit_venue(self):
+        from .models import DirectoryVenue
+        response = self.client.post(self.venues_url, {'action': 'save', 'name': 'Shared Hall', 'venue_type': 'hall', 'location': 'Ipswich', 'capacity': 100, 'is_published': 'on'})
+        self.assertEqual(response.status_code, 302)
+        venue = DirectoryVenue.objects.get(name='Shared Hall')
+        self.assertTrue(venue.is_published)
+        response = self.client.post(self.venues_url, {'action': 'save', 'venue_id': venue.pk, 'name': 'Updated Hall', 'venue_type': 'hotel', 'location': 'London'})
+        self.assertEqual(response.status_code, 302)
+        venue.refresh_from_db()
+        self.assertEqual(venue.name, 'Updated Hall')
+        self.assertFalse(venue.is_published)
+        self.assertContains(self.client.get(reverse('member_list')), self.venues_url)
+        self.assertContains(self.client.get(self.venues_url), self.shopping_url)
+
+    def test_venue_validation_and_confirmation_before_deletion(self):
+        from .models import DirectoryVenue, Venue
+        venue = DirectoryVenue.objects.create(name='Shared Hall', location='Ipswich')
+        member = Member.objects.create(first_name='A', last_name='B', email='saved-venue@example.com')
+        saved = Venue.objects.create(budget=WeddingBudget.objects.create(member=member), directory_entry=venue, name='My venue', notes='Private')
+        response = self.client.post(self.venues_url, {'action': 'save', 'name': '', 'venue_type': 'hall', 'location': 'Ipswich'})
+        self.assertTrue(response.context['form'].errors)
+        response = self.client.post(self.venues_url, {'action': 'delete', 'venue_id': venue.pk})
+        self.assertContains(response, 'Confirm deletion')
+        self.assertTrue(DirectoryVenue.objects.filter(pk=venue.pk).exists())
+        self.client.post(self.venues_url, {'action': 'confirm_delete', 'venue_id': venue.pk})
+        self.assertFalse(DirectoryVenue.objects.filter(pk=venue.pk).exists())
+        saved.refresh_from_db()
+        self.assertIsNone(saved.directory_entry)
+        self.assertEqual(saved.notes, 'Private')
+
+    def test_create_checklist_and_manage_suggestions(self):
+        from .models import EventTemplate
+        response = self.client.post(self.shopping_url, {'action': 'save_template', 'template-name': 'New shared ceremony', 'template-description': 'Planning ideas', 'template-is_published': 'on'})
+        self.assertEqual(response.status_code, 302)
+        template = EventTemplate.objects.get(name='New shared ceremony')
+        url = self.shopping_url + f'?template={template.pk}'
+        response = self.client.post(url, {'action': 'save_item', 'item-name': 'Chunni', 'item-list_category': 'clothing', 'item-quantity': 1, 'item-notes': 'Optional'})
+        self.assertEqual(response.status_code, 302)
+        item = template.shopping_suggestions.get()
+        self.assertContains(self.client.get(url), 'Chunni')
+        response = self.client.post(url + f'&item={item.pk}', {'action': 'save_item', 'item-name': 'Scarf', 'item-list_category': 'clothing', 'item-quantity': 2})
+        self.assertEqual(response.status_code, 302)
+        item.refresh_from_db()
+        self.assertEqual(item.quantity, 2)
+        self.assertEqual(item.name, 'Scarf')
+        self.client.post(url, {'action': 'delete_item', 'item_id': item.pk})
+        self.assertTrue(template.shopping_suggestions.exists())
+        self.client.post(url, {'action': 'confirm_delete', 'item_id': item.pk})
+        self.assertFalse(template.shopping_suggestions.exists())
+
+    def test_other_template_item_cannot_be_modified_and_invalid_qty_rejected(self):
+        from .models import EventTemplate, SuggestedShoppingItem
+        template = EventTemplate.objects.create(name='First checklist')
+        other = EventTemplate.objects.create(name='Second checklist')
+        item = SuggestedShoppingItem.objects.create(event_template=other, name='Other suggestion')
+        url = self.shopping_url + f'?template={template.pk}'
+        self.assertEqual(self.client.post(url, {'action': 'confirm_delete', 'item_id': item.pk}).status_code, 404)
+        response = self.client.post(url, {'action': 'save_item', 'item-name': 'Invalid', 'item-list_category': 'food', 'item-quantity': 0})
+        self.assertTrue(response.context['item_form'].errors)
+        self.assertFalse(template.shopping_suggestions.exists())
+
+    def test_non_staff_and_anonymous_cannot_read_or_write_admin(self):
+        from .models import DirectoryVenue
+        user = get_user_model().objects.create_user(username='ordinary-member')
+        self.client.force_login(user)
+        for url in (self.venues_url, self.shopping_url):
+            self.assertEqual(self.client.get(url).status_code, 302)
+            self.assertEqual(self.client.post(url, {'action': 'save', 'name': 'Forbidden'}).status_code, 302)
+        self.assertFalse(DirectoryVenue.objects.filter(name='Forbidden').exists())
+        self.client.logout()
+        self.assertEqual(self.client.get(self.venues_url).status_code, 302)
