@@ -1,36 +1,83 @@
 {% extends 'planner/base.html' %}
-{% block title %}Join Plan2Wed{% endblock %}
-{% block home_nav %}{% endblock %}
-{% block signin_nav %}{% endblock %}
+{% load static %}
+{% block title %}Plan2Wed — Your traditions. Your people. Your day.{% endblock %}
+{% block home_nav %}{% if not user.is_authenticated %}<button class="button nav-register" type="button" data-signup-open aria-haspopup="dialog" aria-controls="signup-dialog">Register membership</button>{% endif %}{% endblock %}
 {% block body_class %}heritage-home{% endblock %}
 {% block content %}
-<main class="page">
-  <div class="signup-layout">
-    <section class="signup-copy">
-      <div class="heritage-flourish" aria-hidden="true"><span></span><svg viewBox="0 0 64 44" focusable="false"><path d="M32 38C17 32 12 20 17 12c8 1 13 8 15 16 2-8 7-15 15-16 5 8 0 20-15 26ZM32 28C22 19 24 9 32 3c8 6 10 16 0 25ZM22 35C10 37 3 30 3 22c8-2 14 3 19 13Zm20 0c12 2 19-5 19-13-8-2-14 3-19 13ZM12 41h40"/></svg><span></span></div>
-      <div class="eyebrow">Your day, thoughtfully planned</div>
-      <h1>Make room for the moments that matter.</h1>
-      <p class="muted intro">Thoughtfully created for Sikh weddings, Plan2Wed brings together the celebrations, family, and details surrounding your Anand Karaj. From the joy of your Jaggo and the colour of your Mehndi to the ceremony at the Gurdwara and the meal that follows, make space for the traditions and moments that matter to you.</p>
-      <p class="muted intro">Whether you’re planning as a couple or with the support of family and friends, keep your events, venues, guest lists, seating arrangements, and shopping in one calm, considered place. Follow your budget as plans take shape, bring each celebration together at your own pace, and spend more time looking forward to sharing it all with the people you love.</p>
-      <p class="muted signup-future">Beginning with Sikh weddings, we’re building towards a home for other religious wedding traditions too—with space for the customs and moments that matter to you.</p>
-      <div class="benefit"><div class="benefit-icon">✓</div><div><strong>Keep your budget up to date</strong><br>See what you’ve spent, what’s pending, and what’s left to plan.</div></div>
-      <div class="benefit"><div class="benefit-icon">♡</div><div><strong>Stay on top of shopping lists</strong><br>Organize items by event and keep costs reflected in your budget.</div></div>
-      <div class="benefit"><div class="benefit-icon">✦</div><div><strong>Keep the details together</strong><br>Track wedding dates, guests, venues, and plans in one place.</div></div>
+<main class="wedding-home">
+  <svg class="home-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <symbol id="home-lotus" viewBox="0 0 64 44"><path d="M32 38C17 32 12 20 17 12c8 1 13 8 15 16 2-8 7-15 15-16 5 8 0 20-15 26ZM32 28C22 19 24 9 32 3c8 6 10 16 0 25ZM22 35C10 37 3 30 3 22c8-2 14 3 19 13Zm20 0c12 2 19-5 19-13-8-2-14 3-19 13ZM12 41h40"/></symbol>
+  </svg>
+  <section class="home-hero" aria-labelledby="home-title">
+    <div class="hero-copy">
+      <div class="home-kicker"><span></span> Rooted in tradition. Made for you.</div>
+      <h1 id="home-title">All the moments.<br>All your people.<br><em>One beautiful day.</em></h1>
+      <p class="hero-intro">A little less to organise.<br>A little more to look forward to.</p>
+      <p class="hero-description">Bring your celebrations, guests, venues and budget together in one thoughtful space. Created for couples, families and everyone helping make the day happen.</p>
+      <div class="hero-actions">
+        <button class="button home-primary hero-membership" type="button" data-signup-open aria-haspopup="dialog" aria-controls="signup-dialog"><svg class="button-icon" aria-hidden="true"><use href="#icon-person-plus"></use></svg>Create your membership <span aria-hidden="true">↗</span></button>
+        <a class="home-text-link" href="#the-planner">Discover the planner <span aria-hidden="true">↓</span></a>
+      </div>
+      <div class="hero-footnote"><svg aria-hidden="true"><use href="#home-lotus"></use></svg><span>Your traditions. Your pace. Your day.</span></div>
+    </div>
+    <div class="hero-art" aria-label="Plan2Wed, a beautiful beginning">
+      <div class="invitation">
+        <div class="invitation-topline">A beautiful beginning</div>
+        <img class="invitation-logo" src="{% static 'planner/plan2wed_logo_gold_borderless.png' %}" alt="Plan2Wed" width="300" height="300">
+        <div class="invitation-divider"><span></span><span aria-hidden="true">✧</span><span></span></div>
+        <p class="invitation-heading">Many celebrations.<br>One love story.</p>
+        <p class="invitation-caption">Thoughtfully planned, together.</p>
+      </div>
+      <div class="art-caption"><span></span> For everything that brings you together <span></span></div>
+    </div>
+  </section>
+  <section id="the-planner" class="planner-section" aria-labelledby="planner-heading">
+    <div class="section-heading"><div><div class="home-kicker">A place for every detail</div><h2 id="planner-heading">More joy.<br><em>Less juggling.</em></h2></div><p>From the first idea to the final seating plan, keep the practical things in order so you can be present for the meaningful ones.</p></div>
+    <div class="planner-features">
+      <article class="planner-feature"><div class="feature-top"><svg class="button-icon" aria-hidden="true"><use href="#icon-calendar"></use></svg><span>01</span></div><h3>Every celebration</h3><p>Bring your ceremonies, dates and venues together. Give each celebration its own space in your plan.</p><span class="feature-detail">Events &amp; venues</span></article>
+      <article class="planner-feature"><div class="feature-top"><svg class="button-icon" aria-hidden="true"><use href="#icon-people"></use></svg><span>02</span></div><h3>Your favourite people</h3><p>Keep your guest list organised and find a place for everyone with your table and seating plans.</p><span class="feature-detail">Guests &amp; seating</span></article>
+      <article class="planner-feature"><div class="feature-top"><svg class="button-icon" aria-hidden="true"><use href="#icon-bag"></use></svg><span>03</span></div><h3>The thoughtful details</h3><p>Keep shopping lists for each event and see what you’ve spent, what’s pending and what’s left to plan.</p><span class="feature-detail">Shopping &amp; budget</span></article>
+    </div>
+  </section>
+  <footer class="home-footer">
+    <section class="home-beginning" aria-labelledby="beginning-heading">
+      <svg class="beginning-lotus" aria-hidden="true"><use href="#home-lotus"></use></svg>
+      <div><div class="home-kicker">Our recommendation for your next chapter</div><h2 id="beginning-heading">Begin with a little togetherness.</h2><p>Your people, your plans, your traditions.<br>Create a membership and bring it all together.</p></div>
+      <button class="button home-primary" type="button" data-signup-open aria-haspopup="dialog" aria-controls="signup-dialog">Create your membership <span aria-hidden="true">↗</span></button>
     </section>
-    <section class="signup-action" aria-labelledby="membership-title">
-      <svg class="membership-arch" viewBox="0 0 430 600" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-        <defs><linearGradient id="membership-arch-fill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffdf5"/><stop offset="1" stop-color="#f0f3ec"/></linearGradient></defs>
-        <path d="M215 8 C203 30 177 34 166 59 C142 52 116 71 119 96 C88 88 60 112 68 140 C36 138 19 167 29 194 C15 207 10 223 10 247 L10 576 Q10 590 24 590 L406 590 Q420 590 420 576 L420 247 C420 223 415 207 401 194 C411 167 394 138 362 140 C370 112 342 88 311 96 C314 71 288 52 264 59 C253 34 227 30 215 8 Z" fill="url(#membership-arch-fill)" stroke="#b89a57" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
-      </svg>
-      <div class="membership-ornament" aria-hidden="true">♡</div>
-      <div class="eyebrow">A beautiful beginning</div>
-      <h2 id="membership-title">Your next chapter<br>starts here.</h2>
-      <p class="muted membership-intro">Bring your ideas, your plans, and your favourite people together. Create a little space for the day you’ll always remember.</p>
-      <button class="button signup-open" type="button" onclick="document.getElementById('signup-dialog').showModal()"><svg class="button-icon" aria-hidden="true"><use href="#icon-person-plus"></use></svg>Create your membership</button>
-      {% if not user.is_authenticated %}<p class="membership-signin">Already created your membership? <a href="{% url 'login' %}">Sign in</a></p>{% endif %}
-      <p class="membership-note">For couples and those helping make it happen.</p>
-    </section>
-  </div>
+    <div class="footer-columns">
+      <div class="footer-brand">
+        <a href="{% url 'signup' %}" class="footer-wordmark"><img src="{% static 'planner/plan2wed_logo_gold_borderless.png' %}" alt="" width="64" height="64"><span>plan2wed<small>Thoughtfully planned. Beautifully yours.</small></span></a>
+        <p>A thoughtful space for your wedding.<br>Room for your traditions, your favourite people and the moments that matter.</p>
+        <div class="footer-brand-flourish" aria-hidden="true"><span></span><svg><use href="#home-lotus"></use></svg><span></span></div>
+      </div>
+      <nav class="footer-links" aria-labelledby="footer-account-heading">
+        <h3 id="footer-account-heading">My Plan2Wed</h3>
+        <ul>
+          <li><a href="{% url 'signup' %}">Home</a></li>
+          <li><a href="{% url 'member_portal' %}">My account</a></li>
+          {% if not user.is_authenticated %}<li><a href="{% url 'login' %}">Member sign in</a></li>{% endif %}
+          <li><button type="button" data-signup-open aria-haspopup="dialog" aria-controls="signup-dialog">Register membership <span aria-hidden="true">↗</span></button></li>
+        </ul>
+      </nav>
+      <nav class="footer-links" aria-labelledby="footer-planning-heading">
+        <h3 id="footer-planning-heading">Your wedding</h3>
+        <ul>
+          <li><a href="#the-planner">Explore the planner</a></li>
+          <li><a href="{% url 'venue_directory' %}">Browse venues</a></li>
+          <li><a href="{% url 'guest_list' %}">Guests &amp; seating</a></li>
+          <li><a href="{% url 'shopping_management' %}">Shopping &amp; budget</a></li>
+        </ul>
+      </nav>
+      <div class="footer-contact" aria-labelledby="footer-contact-heading">
+        <h3 id="footer-contact-heading">Here to help</h3>
+        <p>A question about your membership?<br>We’d love to hear from you.</p>
+        <a class="footer-email" href="mailto:info@plan2wed.co.uk">info@plan2wed.co.uk <span aria-hidden="true">↗</span></a>
+        <a class="footer-reset" href="{% url 'password_reset' %}">Help signing in</a>
+      </div>
+    </div>
+    <div class="footer-bottom"><p>&copy; {% now "Y" %} Plan2Wed. All rights reserved.</p><p>Your traditions. Your people. Your day.</p><a href="#home-title">Back to the beginning <span aria-hidden="true">↑</span></a></div>
+  </footer>
   <dialog id="signup-dialog" class="signup-dialog" aria-labelledby="signup-dialog-title">
     <section class="card">
       <div class="signup-dialog-heading"><div><div class="eyebrow">Get started</div><h2 id="signup-dialog-title">Create your membership</h2></div><button type="button" class="dialog-close" aria-label="Close join form" onclick="document.getElementById('signup-dialog').close()"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button></div>
@@ -63,71 +110,84 @@
       </form>
     </section>
   </dialog>
+
 </main>
-<style>.signup-future{max-width:430px;margin:20px 0 0;padding-left:16px;border-left:2px solid #ccd8c8;font-size:13px}
-.signup-action{position:relative;isolation:isolate;align-self:center;justify-self:end;width:100%;padding:145px 38px 42px;text-align:center}
-.membership-arch{position:absolute;inset:0;z-index:-1;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 14px 22px #26392b12)}
-.membership-ornament{display:grid;place-items:center;width:48px;height:48px;margin:0 auto 22px;border:1px solid #ccd8c8;border-radius:50%;color:var(--green);font:26px 'Playfair Display',serif}
-.signup-action .eyebrow{letter-spacing:2px}
-.signup-action h2{font-size:34px;line-height:1.2;margin:14px 0 18px}
-.membership-intro{max-width:310px;margin:0 auto;font-size:14px}
-.signup-open{margin-top:26px;min-height:46px;max-width:100%;padding-inline:20px;box-shadow:0 7px 18px #416b5826}
-.membership-note{margin:16px 0 0;color:var(--muted);font-size:11px;line-height:1.6}
-.membership-signin{margin:18px 0 0;color:var(--muted);font-size:13px;line-height:1.7}
-.membership-signin a{display:inline-block;color:var(--green);font-weight:600;text-decoration:underline;text-underline-offset:3px}
-.membership-signin a:hover{color:var(--ink)}
-.membership-signin a:focus-visible{outline:2px solid var(--green);outline-offset:4px;border-radius:2px}
-@media(max-width:760px){.signup-action{justify-self:center;max-width:430px;padding:140px 32px 38px}.signup-action h2{font-size:30px}}
+<style>
+.heritage-home{--cream:#fcf7ee;--ink:#44252a;--muted:#7b6b65;--line:#e9dbcb;--green:#891e2d;--green-dark:#651522;--gold:#b48a46;background:var(--cream)}
+.heritage-home .topbar{height:90px;background:#fcf7eef5;border-color:var(--line);padding-inline:max(6vw,24px);box-shadow:none}
+.heritage-home .brand{margin-left:0}.heritage-home .brand img{width:72px;height:72px}
+.heritage-home .nav{gap:32px;color:#71414a}.heritage-home .nav .nav-cta{background:transparent;border-color:#c6a979;color:#891e2d;padding:10px 24px}.heritage-home .nav .nav-cta:hover{background:#891e2d;border-color:#891e2d;color:#fff8e9}
+.heritage-home .nav .nav-register{background:#891e2d;border-color:#891e2d;color:#fff8e9;padding:11px 22px;font-size:13px;white-space:nowrap}.heritage-home .nav .nav-register:hover{background:#651522;border-color:#651522}
+.heritage-home .home-primary.hero-membership{min-height:58px;padding:16px 26px;font-size:16px;font-weight:600;gap:14px;box-shadow:0 7px 20px #891e2d24}.hero-membership .button-icon{width:19px;height:19px}.hero-membership>span{margin-left:10px}
+.wedding-home{max-width:1240px;margin:0 auto;padding:0 36px}.home-symbols{position:absolute;width:0;height:0;overflow:hidden}
+.home-hero{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(0,1fr);align-items:center;gap:64px;padding:60px 0 56px}
+.home-kicker{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#906c36;line-height:1.7;display:flex;align-items:center;gap:12px}.home-kicker>span{width:26px;height:1px;background:var(--gold)}
+.hero-copy h1{font-size:clamp(40px,4.5vw,64px);line-height:1.13;letter-spacing:-1.7px;color:#791e2c;margin:22px 0 24px;font-weight:500}.hero-copy h1 em,.section-heading h2 em{font-weight:500;color:#a77a36}
+.hero-intro{font-size:18px;line-height:1.6;color:#5d3c3f;margin:0 0 16px}.hero-description{max-width:440px;font-size:14px;line-height:1.85;color:var(--muted);margin:0}
+.hero-actions{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:30px}.heritage-home .home-primary{min-height:48px;border-radius:5px;background:#891e2d;border:1px solid #891e2d;color:#fff8e9;font-size:13px;padding:13px 22px;box-shadow:none;gap:20px}.heritage-home .home-primary:hover{background:#651522;border-color:#651522}.home-primary>span{font-size:19px;line-height:1}
+.home-text-link{font-size:12px;font-weight:600;color:#791e2c;display:inline-flex;gap:12px;align-items:center;text-underline-offset:5px}.home-text-link:hover{text-decoration:underline}.home-text-link:focus-visible{outline:2px solid #891e2d;outline-offset:5px}
+.hero-footnote{display:flex;align-items:center;gap:12px;margin-top:30px;color:#998266;font-size:11px;letter-spacing:.3px}.hero-footnote svg{width:28px;height:23px;fill:none;stroke:#b48a46;stroke-width:1.2}
+.hero-art{min-width:0;padding:24px 16px;position:relative;isolation:isolate;container-type:inline-size}
+.hero-art:before,.hero-art:after{content:"";position:absolute;z-index:-1;border:1px solid #c6a66e;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fffdf7,#f0e3cd);pointer-events:none;box-shadow:inset 0 0 0 7px var(--cream),inset 0 0 0 8px #d4b57466}
+.hero-art:before{width:22%;aspect-ratio:1;top:1%;right:0}.hero-art:after{width:14%;aspect-ratio:1;left:0;bottom:18%}
+.invitation{position:relative;isolation:isolate;width:100%;height:100cqw;aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:11%;color:#791e2c;background:radial-gradient(circle at 40% 25%,#fffdf7,#f5ecd9 70%,#f0e3cd);border:1px solid #ba965d;box-shadow:0 18px 36px #9a743b14}
+.invitation:before{content:"";position:absolute;inset:10px;border:1px solid #d4b57480;border-radius:50%;pointer-events:none}
+.invitation-topline{line-height:1.4;white-space:nowrap;text-transform:uppercase;font-size:9px;letter-spacing:2px;color:#906c36;margin-bottom:12px}.invitation-logo{width:50%;height:auto;display:block;filter:drop-shadow(0 8px 18px #9a743b20)}
+.invitation-divider{line-height:1;display:flex;align-items:center;gap:10px;width:40%;margin:10px 0 6px;color:#b48a46;font-size:18px}.invitation-divider>span:first-child,.invitation-divider>span:last-child{flex:1;height:1px;background:#b48a4670}.invitation-heading{font:500 26px/1.2 'Playfair Display',serif;text-align:center;margin:6px 0 10px;color:#791e2c;letter-spacing:-.3px}.invitation-caption{line-height:1.4;font-size:10px;color:#7b6b65;letter-spacing:1px;margin:0;text-align:center}.art-caption{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:26px;color:#9a7c56;font:italic 12px 'Playfair Display',serif;text-align:center}.art-caption>span{height:1px;width:22px;background:#d9bf93;flex:none}
+
+.planner-section{border-top:1px solid var(--line);padding:68px 0 64px;scroll-margin-top:115px}.section-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:36px;margin-bottom:32px}.section-heading h2{font-size:42px;line-height:1.15;margin:12px 0 0;color:#791e2c}.section-heading>p{max-width:365px;font-size:14px;color:var(--muted);line-height:1.85;margin:0 0 3px}.planner-features{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.planner-feature{border:1px solid var(--line);padding:26px;background:#fffcf6;border-radius:8px}.feature-top{display:flex;align-items:center;justify-content:space-between;color:#b48a46}.feature-top svg{width:23px;height:23px;color:#891e2d}.feature-top>span{font:italic 16px 'Playfair Display',serif;color:#b8a58a}.planner-feature h3{font:500 23px 'Playfair Display',serif;letter-spacing:-.4px;color:#791e2c;margin:24px 0 12px}.planner-feature p{font-size:13px;line-height:1.85;color:var(--muted);margin:0 0 24px}.feature-detail{display:block;padding-top:16px;border-top:1px solid var(--line);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#976d36;font-weight:600}
+.home-beginning{position:relative;background:#f2e7d6;border:1px solid #e2cba6;border-radius:8px;padding:36px;display:flex;align-items:center;gap:28px}.beginning-lotus{width:66px;height:52px;fill:none;stroke:#ad8141;stroke-width:.9;flex:none}.home-beginning h2{font-size:29px;color:#791e2c;margin:10px 0 12px;line-height:1.25}.home-beginning p{font-size:13px;line-height:1.8;color:#7b6b65;margin:0}.home-beginning .home-primary{margin-left:auto;flex:none}
+.home-footer{padding:6px 0 24px}
+.footer-columns{display:grid;grid-template-columns:1.5fr 1fr 1fr 1.25fr;gap:36px;padding:52px 0 42px}
+.footer-wordmark{display:inline-flex;align-items:center;gap:12px;color:#791e2c;font:500 28px 'Playfair Display',serif}
+.footer-wordmark img{width:64px;height:64px;display:block;flex:none}.footer-wordmark small{display:block;font:9px/1.6 'DM Sans',sans-serif;color:#947650;letter-spacing:.2px;margin-top:5px}
+.footer-brand>p,.footer-contact>p{font-size:12px;line-height:1.9;color:var(--muted);margin:18px 0 0;max-width:260px}
+.footer-brand-flourish{display:flex;align-items:center;gap:10px;width:132px;margin-top:22px;color:#b48a46}.footer-brand-flourish>span{height:1px;background:#d2b889;flex:1}.footer-brand-flourish svg{width:28px;height:22px;fill:none;stroke:currentColor;stroke-width:1}
+.footer-columns h3{font:600 10px/1.6 'DM Sans',sans-serif;letter-spacing:1.7px;text-transform:uppercase;color:#906c36;margin:8px 0 18px}
+.footer-links ul{list-style:none;padding:0;margin:0}.footer-links a,.footer-links button{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:7px 0;background:none;border:0;border-radius:0;font:400 12px/1.6 'DM Sans',sans-serif;text-align:left;color:#704950;cursor:pointer}.footer-links button{font-weight:600;color:#891e2d}.footer-links a:hover,.footer-links button:hover,.footer-email:hover,.footer-reset:hover,.footer-bottom a:hover{color:#891e2d;text-decoration:underline;text-underline-offset:4px}
+.footer-contact>p{margin:0 0 14px}.footer-email{display:inline-flex;align-items:center;gap:12px;min-height:40px;font-size:12px;color:#891e2d;font-weight:600;overflow-wrap:anywhere}.footer-reset{display:block;width:fit-content;min-height:40px;padding:9px 0;font-size:11px;color:var(--muted)}
+.footer-bottom{display:flex;align-items:center;justify-content:space-between;gap:20px;border-top:1px solid var(--line);padding-top:20px;color:#947f6a;font-size:10px;letter-spacing:.1px}.footer-bottom p{margin:0;line-height:1.8}.footer-bottom a{display:inline-flex;align-items:center;gap:12px;min-height:36px;color:#791e2c}
+.home-footer a:focus-visible,.footer-links button:focus-visible{outline:2px solid #891e2d;outline-offset:4px;border-radius:3px}
+@media(max-width:1050px){.footer-columns{grid-template-columns:1.25fr 1fr;gap:30px 44px}.footer-brand{grid-row:span 2}.footer-contact{grid-column:2}.footer-links a,.footer-links button{min-height:44px}}
+@media(max-width:760px){.footer-columns{padding:36px 0 28px;gap:28px 24px}.footer-brand{grid-column:1/-1;grid-row:auto}.footer-contact{grid-column:1/-1}.footer-brand>p{max-width:340px}.footer-columns h3{margin:0 0 12px}.footer-bottom{flex-wrap:wrap;gap:10px 20px}.footer-bottom>p:nth-child(2){flex-basis:100%;order:3}.home-footer .home-beginning .home-primary{width:100%;max-width:340px;font-size:13px;gap:12px;padding-inline:16px}.home-footer .home-beginning .home-kicker{font-size:9px}}
 .signup-dialog{position:fixed;inset:50% auto auto 50%;transform:translate(-50%,-50%);width:min(900px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow-y:auto;margin:0;padding:0;border:1px solid #e8e9e2;border-radius:18px;background:var(--white);color:var(--ink);box-shadow:0 28px 90px #17251b55;scrollbar-width:thin;scrollbar-color:#cbd5cc transparent}
-.signup-dialog::backdrop{background:#18231dcc;backdrop-filter:blur(4px)}
+.signup-dialog::backdrop{background:#300c16b8;backdrop-filter:blur(4px)}
 .signup-dialog .card{border:0;border-radius:18px;box-shadow:none;padding:30px 34px}
 .signup-dialog-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:18px;margin-bottom:14px;border-bottom:1px solid var(--line)}
 .signup-dialog-heading .eyebrow{letter-spacing:2px}
 .signup-dialog-heading h2{margin:5px 0 0;font-size:28px}
-.signup-dialog-heading .dialog-close{position:static;flex:none;width:44px;height:44px;display:grid;place-items:center;padding:0;border:1px solid #eee;border-radius:50%;background:#fff;color:#5f6368;font-size:inherit;line-height:1;box-shadow:none} .signup-dialog-heading .dialog-close svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}.signup-dialog-heading .dialog-close:hover{background:#f7f7f7;color:var(--ink)}.signup-dialog-heading .dialog-close:focus-visible{outline:2px solid var(--green);outline-offset:3px;box-shadow:0 0 0 5px #416b5814}
+.signup-dialog-heading .dialog-close{position:static;flex:none;width:44px;height:44px;display:grid;place-items:center;padding:0;border:1px solid #eee;border-radius:50%;background:#fff;color:#5f6368;font-size:inherit;line-height:1;box-shadow:none} .signup-dialog-heading .dialog-close svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}.signup-dialog-heading .dialog-close:hover{background:#f7f7f7;color:var(--ink)}.signup-dialog-heading .dialog-close:focus-visible{outline:2px solid var(--green);outline-offset:3px;box-shadow:0 0 0 5px #891f2914}
 .signup-dialog>section>p.muted{font-size:14px!important;max-width:560px;line-height:1.6}
 .signup-dialog h3{font-size:11px!important;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);padding-top:17px;border-top:1px solid #eceee9}
 .signup-dialog form>.field:first-child{margin-top:18px}
 .signup-dialog .field{margin-top:13px}
 .signup-dialog .field label{font-size:12px;color:#515b53}
 .signup-dialog .field input:not([type=radio]):not([type=checkbox]),.signup-dialog .field select{height:44px;border:1px solid #dfe3dc;border-radius:7px;background:#fff;padding:0 12px;font:14px 'DM Sans',sans-serif;transition:border-color .15s,box-shadow .15s}
-.signup-dialog .field input:not([type=radio]):not([type=checkbox]):focus,.signup-dialog .field select:focus{border-color:var(--green);box-shadow:0 0 0 3px #416b5817;outline:0}
+.signup-dialog .field input:not([type=radio]):not([type=checkbox]):focus,.signup-dialog .field select:focus{border-color:var(--green);box-shadow:0 0 0 3px #891f2917;outline:0}
 .signup-role-field{min-width:0;padding:0;border:0;margin:18px 0 0}
 .signup-role-field legend{padding:0;margin-bottom:10px;font-size:13px;font-weight:600;color:var(--ink)}
 .signup-dialog .signup-role-field .choice-list label{align-items:center;min-height:48px;padding:12px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:14px;cursor:pointer}
-.signup-dialog .signup-role-field .choice-list label:has(input:checked){border-color:var(--green);background:#f1f6ef}
+.signup-dialog .signup-role-field .choice-list label:has(input:checked){border-color:var(--green);background:#fcf0e8}
 .signup-dialog .signup-role-field .choice-list input[type=radio]{appearance:auto;-webkit-appearance:radio;width:20px;height:20px;min-width:20px;min-height:20px;flex:0 0 20px;padding:0;margin:0;border:initial;border-radius:50%;background:initial;accent-color:var(--green);color-scheme:light;box-shadow:none}
 .signup-dialog .signup-role-field .choice-list input[type=radio]:focus-visible{outline:2px solid var(--green);outline-offset:3px}
 @media(max-width:760px){.signup-dialog .field input:not([type=radio]):not([type=checkbox]),.signup-dialog .field select{font-size:16px}}
 .signup-dialog .name-fields{gap:15px}
-.signup-dialog .button.full{min-height:46px;margin-top:24px;box-shadow:0 7px 18px #416b5826}
+.signup-dialog .button.full{min-height:46px;margin-top:24px;box-shadow:0 7px 18px #891f2926}
 .signup-dialog .fineprint{font-size:11px;line-height:1.6;margin-top:12px}
 .signup-dialog:focus{outline:none}.signup-dialog .details-section .field{margin-top:0}.signup-contact-fields{display:grid;gap:16px}
 @media(max-width:520px){.signup-open{margin-top:24px}.signup-dialog{width:calc(100% - 18px);max-height:calc(100dvh - 18px);border-radius:14px}.signup-dialog .card{padding:22px 18px}.signup-dialog-heading h2{font-size:24px}.signup-dialog .name-fields{grid-template-columns:1fr;gap:0}}
 
-.heritage-home{--cream:#fbf6ec;--ink:#34352c;--muted:#6d6b60;--line:#e7dcc7;--green:#426050;background:radial-gradient(ellipse at 95% 18%,#edd6a533,transparent 48%),var(--cream)}
-.heritage-home .topbar{background:#fffdf8;border-bottom:1px solid #c5a56566;box-shadow:0 3px 18px #83683208}
-.heritage-home .topbar:after{content:"";position:absolute;bottom:-5px;left:0;right:0;height:3px;border-bottom:1px solid #c5a56533;pointer-events:none}
-.heritage-home .signup-layout{gap:64px}
-.heritage-home .signup-copy h1{font-size:48px;line-height:1.16;color:#344d40;margin:16px 0 24px}
-.heritage-home .signup-copy .intro{font-size:15px;line-height:1.85}
-.heritage-home .signup-copy>.eyebrow{color:#816327;letter-spacing:2.5px}
-.heritage-flourish{display:flex;align-items:center;gap:16px;width:190px;margin:0 0 24px;color:#ad8a45}
-.heritage-flourish span{flex:1;height:1px;background:currentColor;opacity:.55}
-.heritage-flourish svg{width:54px;height:40px;fill:none;stroke:currentColor;stroke-width:1.1;stroke-linejoin:round;stroke-linecap:round}
-.heritage-home .benefit{line-height:1.7;color:#666559}
-.heritage-home .benefit strong{color:#344d40;font-weight:500}
-.heritage-home .benefit-icon{background:#f4ecd9;border:1px solid #d8c498;color:#876a32}
-.heritage-home .signup-future{border-color:#bd9d60;color:#746b57;font-style:italic}
-.heritage-home .membership-ornament{border-color:#c7ad75;color:#987635;background:#fffaf0;outline:1px solid #d9c89f66;outline-offset:5px}
-.heritage-home .signup-action .eyebrow{color:#816327}
-.heritage-home .signup-action h2{color:#344d40}
-.heritage-home .signup-open{background:#426050;color:#fffdf5;border-color:#426050;border-radius:5px;box-shadow:0 6px 16px #344d401c,inset 0 0 0 3px #ffffff12}
-.heritage-home .signup-open:hover{background:#304b3c;border-color:#304b3c}
-.heritage-home .signup-dialog{border-color:#d8c498}
-@media(max-width:760px){.heritage-home .signup-layout{gap:36px}.heritage-home .signup-copy h1{font-size:36px}.heritage-flourish{margin-bottom:20px}}
-@media(max-width:480px){.heritage-home .signup-copy h1{font-size:32px}}
+
+.heritage-home .signup-dialog{border-color:#d8bf93}.heritage-home .signup-dialog .details-section{background:#fffcf6}.heritage-home .signup-dialog .field label{color:#60474a}.heritage-home .signup-dialog .field input:focus{border-color:#891e2d}.heritage-home .signup-dialog-heading .eyebrow{color:#906c36}
+@media(min-width:761px) and (max-width:1050px){.home-hero{gap:36px}.hero-art{padding:24px 8px}.invitation-heading{font-size:22px}.invitation-topline{font-size:8px;letter-spacing:1.5px}.invitation-caption{font-size:9px;letter-spacing:.5px}.hero-actions{gap:16px}.home-beginning{gap:20px;padding:28px}.beginning-lotus{display:none}}
+@media(max-width:760px){.heritage-home .topbar{height:80px;min-height:80px;padding:8px 24px;align-items:center}.heritage-home .brand img{width:62px;height:62px}.heritage-home .nav{gap:16px}.heritage-home .nav a:first-child{display:inline-flex}.heritage-home .nav .nav-cta{min-height:42px;padding:8px 18px}.wedding-home{padding:0 24px}.home-hero{grid-template-columns:minmax(0,1fr);gap:42px;padding:38px 0 36px}.hero-copy h1{font-size:clamp(36px,7.8vw,54px);letter-spacing:-1.1px;margin-top:18px}.hero-description{max-width:500px}.hero-actions{gap:20px}.hero-footnote{margin-top:24px}.hero-art{width:min(100%,420px);justify-self:center;padding-inline:12px}.invitation-heading{font-size:22px}.invitation-caption{font-size:9px;letter-spacing:.4px}.invitation-topline{font-size:8px;letter-spacing:1.5px;margin-bottom:8px}.planner-section{padding:44px 0}.section-heading{flex-direction:column;align-items:flex-start;gap:20px}.section-heading h2{font-size:36px}.section-heading>p{max-width:480px}.planner-features{grid-template-columns:minmax(0,1fr);gap:14px}.planner-feature{padding:24px}.planner-feature h3{margin-top:18px}.planner-feature p{max-width:500px}.home-beginning{flex-direction:column;align-items:flex-start;gap:24px;padding:28px}.beginning-lotus{width:48px;height:36px}.home-beginning h2{font-size:28px}.home-beginning .home-primary{margin-left:0}.home-kicker{font-size:9px;letter-spacing:1.5px}}
+@media(max-width:480px){.heritage-home .topbar{padding-inline:18px;gap:10px}.heritage-home .nav{gap:8px}.heritage-home .nav .nav-register{padding:10px 12px;font-size:12px}.heritage-home .nav .nav-cta{padding:9px 12px;font-size:12px}.heritage-home .brand img{width:56px;height:56px}.heritage-home .home-primary.hero-membership{font-size:15px;padding:16px 20px;gap:10px}.hero-membership>span{margin-left:0}}
+@media(max-width:380px){.heritage-home .home-primary.hero-membership{font-size:14px;padding:14px;gap:8px}.heritage-home .nav .nav-register{font-size:11px;padding:10px}.heritage-home .brand img{width:48px;height:48px}.heritage-home .nav .nav-cta{font-size:11px;padding:9px 10px}.heritage-home .nav{gap:6px}.wedding-home{padding:0 18px}.heritage-home .topbar{padding-inline:18px}.heritage-home .nav{gap:12px;font-size:12px}.hero-copy h1{font-size:35px}.home-primary{max-width:100%}.hero-actions{align-items:flex-start;flex-direction:column}.invitation-heading{font-size:16px}.invitation-caption{font-size:8px;letter-spacing:0}.invitation-divider{margin-top:6px;font-size:14px}.invitation-topline{font-size:7px;letter-spacing:1px}.invitation:before{inset:7px}}
 </style>
 {% if form.errors %}<script>document.getElementById('signup-dialog').showModal();</script>{% endif %}
-<script>const signupDialog=document.getElementById('signup-dialog');signupDialog.addEventListener('click',function(event){if(event.target===this)this.close();});</script>
+<script>
+const signupDialog=document.getElementById('signup-dialog');
+document.querySelectorAll('[data-signup-open]').forEach(button=>button.addEventListener('click',()=>signupDialog.showModal()));
+signupDialog.addEventListener('click',function(event){if(event.target===this){const bounds=this.getBoundingClientRect();if(event.clientX<bounds.left||event.clientX>bounds.right||event.clientY<bounds.top||event.clientY>bounds.bottom)this.close();}});
+</script>
 {% endblock %}
