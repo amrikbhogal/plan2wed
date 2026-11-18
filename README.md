@@ -209,3 +209,15 @@ catalogue forms reject case/space variants of existing names.
 
 No database migration is needed. Existing duplicates are not merged or deleted;
 review these individually so their guest lists, costs and shopping remain intact.
+
+## Notifications
+
+Django messages display in a dismissible stack at the top right, below the shared
+navigation. Success, information, warning and error messages use distinct pastel
+styles and accessible status/alert roles. Notifications stay visible until the
+user dismisses them or navigates away. Long stacks scroll within the viewport;
+mobile notifications fit the screen width. The shared layout renders messages
+once, including guest-list and table-plan feedback.
+
+Collect static files when deploying changes to `planner/messages.css` or
+`planner/messages.js`. No database migration is needed.

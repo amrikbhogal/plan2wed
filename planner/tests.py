@@ -1290,3 +1290,72 @@ class EventDuplicatePreventionTests(TestCase):
         existing.refresh_from_db()
         self.assertEqual(existing.description, 'Keep this description')
         self.assertEqual(EventTemplate.objects.filter(name__iexact='Unique shared event').count(), 1)
+
+
+class DjangoMessageDisplayTests(TestCase):
+    def render_notices(self, notices):
+        from django.contrib.auth.models import AnonymousUser
+        from django.contrib.messages import constants
+        from django.template.loader import render_to_string
+        from django.test import RequestFactory
+        request = RequestFactory().get('/')
+        request.user = AnonymousUser()
+        return render_to_string('planner/base.html', {
+            'messages': notices, 'DEFAULT_MESSAGE_LEVELS': constants.DEFAULT_LEVELS,
+        }, request=request)
+
+    def test_no_notification_panel_when_there_are_no_messages(self):
+        response = self.client.get(reverse('signup'))
+        self.assertNotContains(response, 'id="django-messages"')
+        self.assertContains(response, 'planner/messages.css')
+        self.assertContains(response, 'planner/messages.js')
+
+    def test_all_message_levels_have_accessible_roles_and_dismiss_controls(self):
+        from django.contrib import messages
+        from django.contrib.messages.storage.base import Message
+        html = self.render_notices([
+            Message(messages.SUCCESS, 'Saved your plan.'),
+            Message(messages.INFO, 'A useful update.'),
+            Message(messages.WARNING, 'Review the date.', extra_tags='custom-tag'),
+            Message(messages.ERROR, 'Please try again.'),
+        ])
+        for level in ['success', 'info', 'warning', 'error']:
+            self.assertIn(f'data-level="{level}"', html)
+        self.assertEqual(html.count('role="alert"'), 1)
+        self.assertEqual(html.count('role="status"'), 3)
+        self.assertEqual(html.count('data-dismiss-message'), 4)
+        self.assertIn('aria-label="Notifications"', html)
+        self.assertIn('aria-label="Dismiss notification"', html)
+        self.assertNotIn('custom-tag', html)
+
+    def test_message_content_is_escaped(self):
+        from django.contrib import messages
+        from django.contrib.messages.storage.base import Message
+        html = self.render_notices([Message(messages.ERROR, '<script>alert("unsafe")</script>')])
+        self.assertNotIn('<script>alert("unsafe")</script>', html)
+        self.assertIn('&lt;script&gt;alert(&quot;unsafe&quot;)&lt;/script&gt;', html)
+
+    def test_redirect_messages_display_once_in_shared_panel_and_are_consumed(self):
+        from .models import WeddingEvent
+        user = get_user_model().objects.create_user(username='notification-staff', is_staff=True)
+        member = Member.objects.create(user=user, first_name='A', last_name='B', email='notifications@example.com')
+        budget = WeddingBudget.objects.create(member=member)
+        event = WeddingEvent.objects.create(budget=budget, name='Reception')
+        self.client.force_login(user)
+        # The shared panel also replaces the former guest/seating inline displays.
+        for index, destination in enumerate([
+            reverse('admin_venues'), reverse('guest_list'), reverse('table_plan', args=[event.pk]),
+        ]):
+            with self.subTest(destination=destination):
+                saved = self.client.post(reverse('admin_venues'), {
+                    'action': 'save', 'name': f'Notification venue {index}',
+                    'venue_type': 'hall', 'location': 'London',
+                })
+                self.assertEqual(saved.status_code, 302)
+                response = self.client.get(destination)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, 'id="django-messages"', count=1)
+                self.assertContains(response, 'Shared venue saved.', count=1)
+                self.assertContains(response, 'data-level="success"', count=1)
+                next_page = self.client.get(destination)
+                self.assertNotContains(next_page, 'id="django-messages"')

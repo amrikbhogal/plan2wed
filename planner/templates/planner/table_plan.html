@@ -4,7 +4,6 @@
 <main class="page dashboard">
   <a class="muted" href="{% url 'event_detail' event.id %}">← Back to event</a>
   <div class="heading-row"><div><div class="eyebrow" style="margin-top:20px">Seating arrangements</div><h1>{{ event.name }} table plan</h1><p class="muted">Create tables and seat your invited guests. Each guest has one place per event.</p></div><a class="button" href="{% url 'guest_list' %}?event={{ event.pk }}">Manage event guests</a></div>
-  {% for message in messages %}<p class="muted" role="status">{{ message }}</p>{% endfor %}
   <div class="stats"><div class="stat"><div class="stat-label">Invited guests · excluding declined</div><div class="stat-value">{{ guest_count }}</div></div><div class="stat"><div class="stat-label">Guests seated</div><div class="stat-value">{{ seated_count }}</div></div><div class="stat"><div class="stat-label">Total seats</div><div class="stat-value">{{ seat_count }}</div></div></div>
   <div class="seating-layout">
     <section aria-labelledby="tables-heading"><h2 id="tables-heading">Your tables</h2><div class="seating-tables">

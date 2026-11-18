@@ -1,0 +1,45 @@
+.message-stack {
+  position: fixed;
+  top: calc(var(--message-header-height, 96px) + 16px);
+  right: 24px;
+  z-index: 1100;
+  display: grid;
+  gap: 10px;
+  width: min(390px, calc(100vw - 32px));
+  max-height: calc(100dvh - var(--message-header-height, 96px) - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  pointer-events: none;
+}
+.site-message {
+  --notice-accent: #70644c;
+  --notice-background: #fffaf0;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 44px;
+  align-items: start;
+  gap: 12px;
+  padding: 14px 8px 14px 16px;
+  border: 1px solid #e5dac6;
+  border-left: 3px solid var(--notice-accent);
+  border-radius: 10px;
+  background: var(--notice-background);
+  box-shadow: 0 5px 18px #4b30200d;
+  color: #493b36;
+  pointer-events: auto;
+}
+.site-message[data-level="success"] { --notice-accent: #46634c; --notice-background: #f1f6ef; }
+.site-message[data-level="info"] { --notice-accent: #52657b; --notice-background: #f0f4f8; }
+.site-message[data-level="warning"] { --notice-accent: #826320; --notice-background: #fff6df; }
+.site-message[data-level="error"] { --notice-accent: #8a3440; --notice-background: #fbefec; }
+.message-icon { width: 22px; height: 22px; margin-top: 2px; color: var(--notice-accent); }
+.message-copy { min-width: 0; overflow-wrap: anywhere; }
+.message-copy strong { display: block; font-size: 12px; line-height: 1.7; font-weight: 600; color: var(--notice-accent); }
+.message-copy p { margin: 4px 0 0; font-size: 13px; line-height: 1.65; }
+.message-dismiss { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; margin-top: -6px; border: 0; border-radius: 50%; background: transparent; color: #766b60; cursor: pointer; }
+.message-dismiss svg { width: 16px; height: 16px; }
+.message-dismiss:hover { background: #493b360a; color: #791e2c; }
+.message-dismiss:focus-visible { outline: 2px solid #891e2d; outline-offset: -3px; }
+@media (max-width: 480px) {
+  .message-stack { top: calc(var(--message-header-height, 80px) + 12px); right: 16px; max-height: calc(100dvh - var(--message-header-height, 80px) - 28px); }
+  .site-message { gap: 10px; padding-left: 12px; }
+}
