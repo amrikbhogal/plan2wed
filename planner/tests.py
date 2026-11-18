@@ -1088,3 +1088,205 @@ class InAppCatalogueAdminTests(TestCase):
         self.assertFalse(DirectoryVenue.objects.filter(name='Forbidden').exists())
         self.client.logout()
         self.assertEqual(self.client.get(self.venues_url).status_code, 302)
+
+
+class EventDuplicatePreventionTests(TestCase):
+    def setUp(self):
+        from .models import WeddingEvent
+        self.user = get_user_model().objects.create_user(username='duplicate-event-owner')
+        self.member = Member.objects.create(user=self.user, first_name='A', last_name='B', email='duplicate-events@example.com')
+        self.budget = WeddingBudget.objects.create(member=self.member)
+        self.event = WeddingEvent.objects.create(budget=self.budget, name='Reception', notes='Keep our plans')
+        self.client.force_login(self.user)
+
+    def event_data(self, name, **overrides):
+        data = {'name': name, 'event_date': '', 'description': '', 'venue': '', 'other_spent': '0', 'other_pending': '0', 'notes': ''}
+        data.update(overrides)
+        return data
+
+    def test_duplicate_names_are_rejected_in_add_form_even_on_another_date(self):
+        for name in ['Reception', 'reception', ' RECEPTION ']:
+            with self.subTest(name=name):
+                response = self.client.post(reverse('event_add'), self.event_data(name, event_date='2027-06-12'))
+                self.assertEqual(response.status_code, 200)
+                self.assertIn('name', response.context['form'].errors)
+                self.assertContains(response, 'already in your wedding plan')
+                self.assertEqual(self.budget.events.count(), 1)
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.notes, 'Keep our plans')
+
+    def test_form_detects_existing_legacy_names_with_surrounding_spaces(self):
+        from .models import WeddingEvent
+        WeddingEvent.objects.filter(pk=self.event.pk).update(name=' Reception ')
+        response = self.client.post(reverse('event_add'), self.event_data('reception'))
+        self.assertIn('name', response.context['form'].errors)
+        self.assertEqual(self.budget.events.count(), 1)
+
+    def test_repeated_submission_creates_only_one_new_event(self):
+        data = self.event_data(' Mehndi ')
+        first = self.client.post(reverse('event_add'), data)
+        self.assertEqual(first.status_code, 302)
+        second = self.client.post(reverse('event_add'), data)
+        self.assertIn('name', second.context['form'].errors)
+        self.assertEqual(self.budget.events.filter(name='Mehndi').count(), 1)
+
+    def test_editing_same_event_is_allowed_but_renaming_another_to_it_is_not(self):
+        from .models import WeddingEvent
+        url = reverse('event_edit', args=[self.event.pk])
+        response = self.client.post(url, self.event_data('Reception', notes='Updated private notes'))
+        self.assertEqual(response.status_code, 302)
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.notes, 'Updated private notes')
+        other = WeddingEvent.objects.create(budget=self.budget, name='Mehndi')
+        response = self.client.post(reverse('event_edit', args=[other.pk]), self.event_data('RECEPTION'))
+        self.assertIn('name', response.context['form'].errors)
+        other.refresh_from_db()
+        self.assertEqual(other.name, 'Mehndi')
+
+    def test_same_event_name_is_allowed_in_another_wedding_plan(self):
+        from .models import WeddingEvent
+        other_member = Member.objects.create(first_name='C', last_name='D', email='another-wedding@example.com')
+        other_budget = WeddingBudget.objects.create(member=other_member)
+        event = WeddingEvent.objects.create(budget=other_budget, name='reception')
+        self.assertEqual(event.budget, other_budget)
+        self.assertEqual(self.budget.events.count(), 1)
+
+    def test_model_save_also_rejects_duplicate_creation_and_rename(self):
+        from django.core.exceptions import ValidationError
+        from .models import WeddingEvent
+        with self.assertRaises(ValidationError):
+            WeddingEvent.objects.create(budget=self.budget, name=' RECEPTION ')
+        other = WeddingEvent.objects.create(budget=self.budget, name='Mehndi')
+        other.name = 'reception'
+        with self.assertRaises(ValidationError):
+            other.save()
+        other.refresh_from_db()
+        self.assertEqual(other.name, 'Mehndi')
+        self.assertEqual(self.budget.events.count(), 2)
+
+    def test_save_time_conflict_is_shown_as_field_error_without_losing_input(self):
+        from django.core.exceptions import ValidationError
+        from unittest.mock import patch
+        with patch('planner.views.WeddingEvent.save', side_effect=ValidationError({'name': 'An event with this name is already in your wedding plan.'})):
+            response = self.client.post(reverse('event_add'), self.event_data('Mehndi', notes='Keep this input'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('name', response.context['form'].errors)
+        self.assertEqual(response.context['form']['notes'].value(), 'Keep this input')
+        self.assertEqual(self.budget.events.count(), 1)
+
+    def test_existing_duplicate_records_are_not_deleted_or_blocked_from_maintenance(self):
+        from .models import WeddingEvent
+        other = WeddingEvent.objects.create(budget=self.budget, name='Old event')
+        WeddingEvent.objects.filter(pk=other.pk).update(name='reception')
+        self.event.notes = 'Still editable'
+        self.event.save()
+        self.assertEqual(self.budget.events.count(), 2)
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.notes, 'Still editable')
+
+    def test_automatic_events_reuse_manual_events_and_keep_related_plans(self):
+        from .models import WeddingEvent
+        day = WeddingEvent.objects.create(budget=self.budget, name=' wedding day ', notes='Ceremony notes')
+        meal = WeddingEvent.objects.create(budget=self.budget, name='wedding meal / reception', notes='Meal notes')
+        guest = WeddingGuest.objects.create(budget=self.budget, first_name='Family')
+        day.guests.add(guest)
+        item = ShoppingListItem.objects.create(event=meal, name='Table flowers', unit_cost=30)
+        self.budget.wedding_date = date(2027, 6, 12)
+        self.budget.has_separate_meal = True
+        self.budget.save()
+        self.budget.save()
+        day.refresh_from_db()
+        meal.refresh_from_db()
+        self.assertTrue(day.is_wedding_day)
+        self.assertTrue(meal.is_wedding_meal)
+        self.assertEqual(day.event_date, self.budget.wedding_date)
+        self.assertEqual(meal.event_date, self.budget.wedding_date)
+        self.assertEqual(day.guests.get(), guest)
+        self.assertEqual(meal.shopping_items.get(), item)
+        self.assertEqual(meal.notes, 'Meal notes')
+        self.assertEqual(self.budget.events.count(), 3)
+
+    def test_catalogue_reuses_matching_manual_event_and_preserves_details(self):
+        from .models import EventTemplate, SuggestedShoppingItem
+        template = EventTemplate.objects.create(name='RECEPTION', description='Suggested description', is_published=True)
+        item = SuggestedShoppingItem.objects.create(event_template=template, name='Flowers', list_category='flowers')
+        self.event.event_date = date(2027, 6, 12)
+        self.event.description = 'Our own description'
+        self.event.save()
+        guest = WeddingGuest.objects.create(budget=self.budget, first_name='Family')
+        self.event.guests.add(guest)
+        existing_item = ShoppingListItem.objects.create(event=self.event, name='Flowers', list_category='flowers', quantity=3, unit_cost=50)
+        url = reverse('event_template_detail', args=[template.pk])
+        for _ in range(2):
+            response = self.client.post(url, {'items': [item.pk], 'event_date': '2027-07-01'})
+            self.assertRedirects(response, reverse('event_shopping_list', args=[self.event.pk]))
+        self.assertEqual(self.budget.events.count(), 1)
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.event_template, template)
+        self.assertEqual(self.event.description, 'Our own description')
+        self.assertEqual(self.event.event_date, date(2027, 6, 12))
+        self.assertEqual(self.event.notes, 'Keep our plans')
+        self.assertEqual(self.event.guests.get(), guest)
+        self.assertEqual(self.event.shopping_items.get(), existing_item)
+        self.assertEqual(self.event.pending, Decimal('150'))
+
+    def test_shared_event_catalogue_form_rejects_case_and_space_variants(self):
+        from .forms import EventTemplateAdminForm
+        from .models import EventTemplate
+        template = EventTemplate.objects.create(name='Unique shared ceremony')
+        form = EventTemplateAdminForm({'name': ' UNIQUE SHARED CEREMONY '})
+        self.assertFalse(form.is_valid())
+        self.assertIn('name', form.errors)
+        same = EventTemplateAdminForm({'name': 'Unique shared ceremony'}, instance=template)
+        self.assertTrue(same.is_valid(), same.errors)
+
+    def test_catalogue_reuses_same_named_manual_event_and_keeps_private_details(self):
+        from .models import EventTemplate, SuggestedShoppingItem
+        template = EventTemplate.objects.create(name='RECEPTION', description='Shared text', is_published=True)
+        suggestion = SuggestedShoppingItem.objects.create(event_template=template, name='Table flowers', list_category='flowers')
+        self.event.event_date = date(2027, 6, 12)
+        self.event.description = 'Our private description'
+        self.event.save()
+        guest = WeddingGuest.objects.create(budget=self.budget, first_name='Family')
+        self.event.guests.add(guest)
+        paid_item = ShoppingListItem.objects.create(event=self.event, name='Venue deposit', unit_cost=100, is_purchased=True)
+        url = reverse('event_template_detail', args=[template.pk])
+        for _ in range(2):
+            response = self.client.post(url, {'items': [suggestion.pk], 'event_date': '2028-01-01'})
+            self.assertRedirects(response, reverse('event_shopping_list', args=[self.event.pk]))
+        self.assertEqual(self.budget.events.count(), 1)
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.event_template_id, template.pk)
+        self.assertEqual(self.event.event_date, date(2027, 6, 12))
+        self.assertEqual(self.event.description, 'Our private description')
+        self.assertEqual(self.event.notes, 'Keep our plans')
+        self.assertEqual(self.event.guests.get(), guest)
+        self.assertEqual(self.event.shopping_items.count(), 2)
+        self.assertTrue(self.event.shopping_items.filter(pk=paid_item.pk, is_purchased=True, unit_cost=100).exists())
+
+    def test_legacy_duplicates_can_still_be_edited_without_deleting_any_data(self):
+        from .models import WeddingEvent
+        other = WeddingEvent.objects.create(budget=self.budget, name='Other legacy event')
+        WeddingEvent.objects.filter(pk=other.pk).update(name='reception')
+        response = self.client.post(reverse('event_edit', args=[self.event.pk]), self.event_data('Reception', notes='Still editable'))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.budget.events.count(), 2)
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.notes, 'Still editable')
+        response = self.client.post(reverse('event_add'), self.event_data('RECEPTION'))
+        self.assertIn('name', response.context['form'].errors)
+
+    def test_admin_event_table_rejects_duplicate_variant_without_changing_existing(self):
+        from .models import EventTemplate
+        staff = get_user_model().objects.create_user(username='duplicate-check-staff', is_staff=True)
+        existing = EventTemplate.objects.create(name='Unique shared event', description='Keep this description')
+        self.client.force_login(staff)
+        response = self.client.post(reverse('admin_shopping'), {
+            'action': 'save_template', 'template-name': ' UNIQUE SHARED EVENT ',
+            'template-description': 'Do not overwrite',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('name', response.context['template_form'].errors)
+        existing.refresh_from_db()
+        self.assertEqual(existing.description, 'Keep this description')
+        self.assertEqual(EventTemplate.objects.filter(name__iexact='Unique shared event').count(), 1)

@@ -192,3 +192,20 @@ categories, quantities and notes. Select Manage checklist for an event to edit
 its suggestions. Unpublishing hides a catalogue entry from members. Shared
 changes never overwrite copies members already added to their private plans.
 No new migration or static-file collection is needed for these screens.
+
+## Duplicate event checks
+
+Adding or renaming a wedding event checks for the same name within that wedding
+plan, ignoring capitalisation and surrounding spaces. Matching names are allowed
+in different members' plans. Duplicate submissions show an error beside the event
+name; existing events remain editable. Application saves lock the wedding budget
+row while checking and writing on PostgreSQL, preventing simultaneous requests
+from adding the same named event.
+
+Catalogue suggestions reuse a matching manually added event, preserving its
+date, description, guests, costs, notes and shopping items. Automatic Wedding Day
+and Wedding Meal / Reception entries also reuse matching events. Shared event
+catalogue forms reject case/space variants of existing names.
+
+No database migration is needed. Existing duplicates are not merged or deleted;
+review these individually so their guest lists, costs and shopping remain intact.

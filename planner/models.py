@@ -5,6 +5,13 @@ from decimal import Decimal
 from django.db import models, transaction
 from django.conf import settings
 from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
+from django.db.models.functions import Lower, Trim
+
+
+def events_named(queryset, name):
+    """Match event names without case or surrounding spaces."""
+    return queryset.alias(_event_name=Lower(Trim('name'))).filter(_event_name=name.strip().lower())
 
 
 class Member(models.Model):
@@ -83,18 +90,26 @@ class WeddingBudget(models.Model):
                 if event:
                     self.events.filter(pk=event.pk).update(event_date=self.wedding_date)
                 elif self.wedding_date:
-                    self.events.create(name="Wedding Day", event_date=self.wedding_date, is_wedding_day=True)
+                    event = events_named(self.events, 'Wedding Day').order_by('pk').first()
+                    if event:
+                        self.events.filter(pk=event.pk).update(event_date=self.wedding_date, is_wedding_day=True)
+                    else:
+                        self.events.create(name="Wedding Day", event_date=self.wedding_date, is_wedding_day=True)
             fields = kwargs.get("update_fields")
             if fields is None or {"wedding_date", "has_separate_meal", "meal_date"}.intersection(fields):
                 if self.has_separate_meal:
-                    self.events.update_or_create(
-                        is_wedding_meal=True,
-                        defaults={"event_date": self.meal_date or self.wedding_date},
-                        create_defaults={
-                            "name": "Wedding Meal / Reception",
-                            "event_date": self.meal_date or self.wedding_date,
-                        },
-                    )
+                    meal = self.events.filter(is_wedding_meal=True).first()
+                    if meal is None:
+                        meal = events_named(self.events, 'Wedding Meal / Reception').order_by('pk').first()
+                    if meal:
+                        self.events.filter(pk=meal.pk).update(
+                            is_wedding_meal=True, event_date=self.meal_date or self.wedding_date,
+                        )
+                    else:
+                        self.events.create(
+                            name='Wedding Meal / Reception', is_wedding_meal=True,
+                            event_date=self.meal_date or self.wedding_date,
+                        )
 
     @property
     def spent(self):
@@ -178,6 +193,11 @@ class EventTemplate(models.Model):
     def __str__(self):
         return self.name
 
+    def clean(self):
+        super().clean()
+        if events_named(type(self).objects.exclude(pk=self.pk), self.name).exists():
+            raise ValidationError({'name': 'A suggested event with this name already exists. Edit the existing event instead.'})
+
 
 class WeddingEvent(models.Model):
     event_template = models.ForeignKey(EventTemplate, on_delete=models.SET_NULL, null=True, blank=True, editable=False, related_name="member_events")
@@ -201,10 +221,30 @@ class WeddingEvent(models.Model):
             models.UniqueConstraint(fields=["budget"], condition=models.Q(is_wedding_meal=True), name="one_wedding_meal_per_budget"),
         ]
 
+    def validate_duplicate_name(self):
+        if not self.budget_id or not self.name:
+            return
+        # Existing duplicate records can still be maintained; prevent new ones
+        # and renames into another event, without deleting or merging live data.
+        original = type(self).objects.filter(pk=self.pk).values('budget_id', 'name').first() if self.pk else None
+        if original and original['budget_id'] == self.budget_id and original['name'].strip().lower() == self.name.strip().lower():
+            return
+        if events_named(type(self).objects.filter(budget_id=self.budget_id).exclude(pk=self.pk), self.name).exists():
+            raise ValidationError({'name': 'An event with this name is already in your wedding plan. Edit the existing event instead.'})
+
+    def clean(self):
+        super().clean()
+        self.validate_duplicate_name()
+
     def save(self, *args, **kwargs):
+        self.name = self.name.strip()
         if self._state.adding and not self.description:
             self.description = suggested_description(self.name)
         with transaction.atomic():
+            # Serialise creation within a plan so two requests cannot both pass
+            # the duplicate check before either has saved its event.
+            WeddingBudget.objects.select_for_update().get(pk=self.budget_id)
+            self.validate_duplicate_name()
             super().save(*args, **kwargs)
             if self.is_wedding_day and (kwargs.get("update_fields") is None or "event_date" in kwargs["update_fields"]):
                 WeddingBudget.objects.filter(pk=self.budget_id).update(wedding_date=self.event_date)

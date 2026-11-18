@@ -161,6 +161,8 @@ class WeddingEventForm(forms.ModelForm):
 
     def __init__(self, *args, budget=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if budget is not None:
+            self.instance.budget = budget
         self.fields["venue"].queryset = Venue.objects.filter(budget=budget) if budget else Venue.objects.none()
         self.fields["guests"].queryset = WeddingGuest.objects.filter(budget=budget) if budget else WeddingGuest.objects.none()
         if self.instance.pk and not self.is_bound:

@@ -22,7 +22,7 @@ from .forms import ReceiptUploadForm, ReceiptItemFormSet, ShoppingManagementImpo
 from .shopping_import import read_shopping_csv
 from .receipts import scan_receipt, receipt_items
 from .notifications import notify_administrator
-from .models import DirectoryVenue, EventTemplate
+from .models import DirectoryVenue, EventTemplate, events_named
 from .forms import EventTemplatePlanForm
 from .forms import VenueDirectorySearchForm
 from .models import SeatingTable, SeatingAssignment, Member, ShoppingListItem, Venue, WeddingBudget, WeddingEvent, WeddingGuest
@@ -168,13 +168,18 @@ def event_form(request, event_id=None):
 
     form = WeddingEventForm(request.POST or None, instance=event, budget=budget)
     if request.method == "POST" and form.is_valid():
-        if budget is None:
-            budget = WeddingBudget.objects.create(member=member)
-        event = form.save(commit=False)
-        event.budget = budget
-        event.save()
-        event.guests.set(form.cleaned_data["guests"])
-        return redirect("event_detail", event_id=event.id)
+        try:
+            with transaction.atomic():
+                if budget is None:
+                    budget, _ = WeddingBudget.objects.get_or_create(member=member)
+                saved_event = form.save(commit=False)
+                saved_event.budget = budget
+                saved_event.save()
+                saved_event.guests.set(form.cleaned_data["guests"])
+        except ValidationError as error:
+            form.add_error(None, error)
+        else:
+            return redirect("event_detail", event_id=saved_event.id)
 
     return render(request, "planner/event_form.html", {"form": form, "event": event})
 
@@ -380,9 +385,18 @@ def event_catalogue(request, template_id=None):
             event = form.cleaned_data['event']
             if event is None:
                 budget, _ = WeddingBudget.objects.get_or_create(member=member)
-                event, _ = WeddingEvent.objects.get_or_create(budget=budget, event_template=template, defaults={
-                    'name': template.name, 'description': template.description, 'event_date': form.cleaned_data['event_date'],
-                })
+                WeddingBudget.objects.select_for_update().get(pk=budget.pk)
+                event = budget.events.filter(event_template=template).first()
+                if event is None:
+                    event = events_named(budget.events, template.name).order_by('pk').first()
+                if event is None:
+                    event = WeddingEvent.objects.create(
+                        budget=budget, event_template=template, name=template.name,
+                        description=template.description, event_date=form.cleaned_data['event_date'],
+                    )
+                elif event.event_template_id is None:
+                    event.event_template = template
+                    event.save(update_fields=['event_template'])
             added = 0
             for suggestion in form.cleaned_data['items']:
                 if not event.shopping_items.filter(name__iexact=suggestion.name, list_category=suggestion.list_category).exists():
