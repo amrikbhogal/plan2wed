@@ -7,9 +7,9 @@
   z-index: 1100;
   display: grid;
   gap: 10px;
-  width: min(390px, calc(100vw - 32px));
-  margin: 0;
-  padding: 0;
+  width: min(406px, calc(100vw - 16px));
+  margin: -8px;
+  padding: 8px;
   border: 0;
   background: transparent;
   max-height: calc(100dvh - var(--message-header-height, 96px) - 40px);
@@ -26,10 +26,9 @@
   gap: 12px;
   padding: 14px 8px 14px 16px;
   border: 1px solid #e5dac6;
-  border-left: 3px solid var(--notice-accent);
   border-radius: 10px;
   background: var(--notice-background);
-  box-shadow: none;
+  box-shadow: 0 2px 6px #4b30201a;
   color: #493b36;
   pointer-events: auto;
 }
