@@ -141,7 +141,7 @@ class WeddingEventForm(forms.ModelForm):
         model = WeddingEvent
         fields = ["name", "description", "event_date", "venue", "guests", "other_spent", "other_pending", "notes"]
         labels = {
-            "name": "Event or expense",
+            "name": "Event name",
             "description": "Description",
             "event_date": "Date",
             "venue": "Venue",

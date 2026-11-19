@@ -1381,7 +1381,10 @@ class ProjectWideNotificationTests(TestCase):
         response = self.client.post(reverse('event_add'), {'name': ' RECEPTION ', 'other_spent': '0', 'other_pending': '0'})
         self.assertContains(response, 'id="django-messages"', count=1)
         self.assertContains(response, 'data-level="error"', count=1)
-        self.assertContains(response, 'Event or expense: An event with this name is already in your wedding plan.')
+        self.assertContains(response, 'Event name: An event with this name is already in your wedding plan.')
+        self.assertContains(response, 'An event with this name is already in your wedding plan.', count=1)
+        self.assertNotContains(response, 'Event or expense')
+        self.assertNotContains(response, 'Choose a suggested ceremony or enter your own event.')
         self.assertIn('name', response.context['form'].errors)
         self.assertNotContains(self.client.get(reverse('member_portal')), 'id="django-messages"')
 

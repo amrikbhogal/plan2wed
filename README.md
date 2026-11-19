@@ -214,7 +214,8 @@ review these individually so their guest lists, costs and shopping remain intact
 
 Django messages display in a dismissible stack at the top right, below the shared
 navigation. Success, information, warning and error messages use distinct pastel
-styles and accessible status/alert roles. Notifications stay visible until the
+styles and accessible status/alert roles. Success messages close after six seconds,
+pausing while hovered or focused. Other notifications stay visible until the
 user dismisses them or navigates away. Long stacks scroll within the viewport;
 mobile notifications fit the screen width. The shared layout renders messages
 once, including guest-list and table-plan feedback.
@@ -224,7 +225,8 @@ Collect static files when deploying changes to `planner/messages.css` or
 
 The shared notification renderer also summarises bound form and formset errors,
 including signup/sign-in, duplicate events, receipts, CSV imports and staff
-catalogue forms. Field-level guidance remains beside inputs. Validation summaries
+catalogue forms. Event-name errors appear only in the notification stack to avoid
+duplicate feedback beneath that input; other field-level guidance remains beside inputs. Validation summaries
 are generated only for the current response, so they do not persist into the next
 page. Account, save, update and delete actions use the same message display.
 Notifications stay visible and dismissible above modal forms in browsers with
