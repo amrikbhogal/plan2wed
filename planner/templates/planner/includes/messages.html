@@ -1,6 +1,8 @@
-{% if messages %}
+{% load planner_notifications %}
+{% project_notifications as notifications %}
+{% if notifications %}
 <div id="django-messages" class="message-stack" role="region" aria-label="Notifications">
-  {% for message in messages %}
+  {% for message in notifications %}
   <div class="site-message" data-level="{{ message.level_tag }}" role="{% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}alert{% else %}status{% endif %}" aria-atomic="true">
     <svg class="message-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="9"/>

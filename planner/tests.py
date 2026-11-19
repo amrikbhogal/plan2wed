@@ -1359,3 +1359,168 @@ class DjangoMessageDisplayTests(TestCase):
                 self.assertContains(response, 'data-level="success"', count=1)
                 next_page = self.client.get(destination)
                 self.assertNotContains(next_page, 'id="django-messages"')
+
+
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+class ProjectWideNotificationTests(TestCase):
+    def setUp(self):
+        from .models import WeddingEvent
+        self.user = get_user_model().objects.create_user(username='notice@example.com', email='notice@example.com', password='StrongNoticePassword!2027')
+        self.member = Member.objects.create(user=self.user, first_name='A', last_name='B', email='notice@example.com')
+        self.budget = WeddingBudget.objects.create(member=self.member)
+        self.event = WeddingEvent.objects.create(budget=self.budget, name='Reception')
+        self.client.force_login(self.user)
+
+    def assert_success_notice(self, response, text):
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="django-messages"', count=1)
+        self.assertContains(response, 'data-level="success"', count=1)
+        self.assertContains(response, text)
+
+    def test_event_form_errors_use_shared_panel_and_do_not_persist(self):
+        response = self.client.post(reverse('event_add'), {'name': ' RECEPTION ', 'other_spent': '0', 'other_pending': '0'})
+        self.assertContains(response, 'id="django-messages"', count=1)
+        self.assertContains(response, 'data-level="error"', count=1)
+        self.assertContains(response, 'Event or expense: An event with this name is already in your wedding plan.')
+        self.assertIn('name', response.context['form'].errors)
+        self.assertNotContains(self.client.get(reverse('member_portal')), 'id="django-messages"')
+
+    def test_signup_validation_summary_is_present_with_modal(self):
+        self.client.logout()
+        response = self.client.post(reverse('signup'), {'signup_role': 'couple'})
+        self.assertContains(response, 'data-level="error"', count=1)
+        self.assertContains(response, 'id="signup-dialog"')
+        self.assertContains(response, "document.getElementById('signup-dialog').showModal()")
+        self.assertTrue(response.context['form'].errors)
+
+    def test_form_aliases_do_not_duplicate_the_notification_and_errors_are_escaped(self):
+        from django import forms
+        from django.template.loader import render_to_string
+        from django.test import RequestFactory
+        class NoticeForm(forms.Form):
+            name = forms.CharField(label='Event name')
+        form = NoticeForm({'name': ''})
+        form.is_valid()
+        form.add_error(None, '<script>unsafe</script>')
+        request = RequestFactory().get('/')
+        request.user = self.user
+        html = render_to_string('planner/base.html', {'form': form, 'same_form': form}, request=request)
+        self.assertEqual(html.count('data-level="error"'), 1)
+        self.assertIn('Event name: This field is required.', html)
+        self.assertIn('&lt;script&gt;unsafe&lt;/script&gt;', html)
+        self.assertNotIn('<script>unsafe</script>', html)
+
+    def test_formset_and_non_form_errors_are_in_shared_panel(self):
+        from django import forms
+        from django.forms import formset_factory
+        from django.template.loader import render_to_string
+        from django.test import RequestFactory
+        class ItemForm(forms.Form):
+            name = forms.CharField(label='Item name')
+        ItemForms = formset_factory(ItemForm, min_num=1, validate_min=True)
+        rows = ItemForms({'items-TOTAL_FORMS': '1', 'items-INITIAL_FORMS': '0', 'items-0-name': ''}, prefix='items')
+        request = RequestFactory().get('/')
+        request.user = self.user
+        html = render_to_string('planner/base.html', {'receipt_rows': rows}, request=request)
+        self.assertIn('Item 1 — Item name: This field is required.', html)
+        self.assertIn('Please submit at least 1 form.', html)
+        self.assertEqual(html.count('data-level="error"'), 1)
+
+    def test_login_logout_and_failed_login_use_notifications_without_password_leaks(self):
+        self.client.logout()
+        response = self.client.post(reverse('login'), {'username': self.user.username, 'password': 'IncorrectSecretPassword'})
+        self.assertContains(response, 'data-level="error"', count=1)
+        self.assertContains(response, 'Your email or password is incorrect, or your membership is not active yet.', count=1)
+        self.assertNotContains(response, 'IncorrectSecretPassword')
+        response = self.client.post(reverse('login'), {'username': self.user.username, 'password': 'StrongNoticePassword!2027'}, follow=True)
+        self.assert_success_notice(response, 'Welcome back to Plan2Wed.')
+        response = self.client.post(reverse('logout'), follow=True)
+        self.assert_success_notice(response, 'been signed out.')
+        self.assertEqual(self.client.get(reverse('logout')).status_code, 405)
+
+    def test_invalid_reset_link_and_reset_request_have_feedback(self):
+        self.client.logout()
+        response = self.client.get(reverse('password_reset_confirm', args=['invalid', 'invalid']))
+        self.assertContains(response, 'data-level="error"')
+        self.assertContains(response, 'Request a new link.')
+        for email in ['notice@example.com', 'unknown@example.com']:
+            response = self.client.post(reverse('password_reset'), {'email': email}, follow=True)
+            self.assertContains(response, 'data-level="info"', count=1)
+            self.assertContains(response, 'If an active account matches that address')
+
+    def test_password_change_success_and_mismatch_use_shared_panel(self):
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+        self.client.logout()
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        response = self.client.get(reverse('password_reset_confirm', args=[uid, token]))
+        url = response.url
+        response = self.client.post(url, {'new_password1': 'StrongNewPassword!2027', 'new_password2': 'DifferentPassword!2027'})
+        self.assertContains(response, 'data-level="error"', count=1)
+        self.assertTrue(response.context['form'].errors)
+        response = self.client.post(url, {'new_password1': 'StrongNewPassword!2027', 'new_password2': 'StrongNewPassword!2027'}, follow=True)
+        self.assert_success_notice(response, 'Your password has been updated.')
+        self.assertNotContains(response, 'StrongNewPassword')
+
+    def test_wedding_details_event_add_edit_delete_have_feedback(self):
+        from .models import WeddingEvent
+        response = self.client.post(reverse('member_portal'), {'action': 'save_budget', 'allocated': '1000', 'has_separate_meal': 'False'}, follow=True)
+        self.assert_success_notice(response, 'Your wedding details and budget have been saved.')
+        data = {'name': 'Mehndi', 'other_spent': '0', 'other_pending': '0'}
+        response = self.client.post(reverse('event_add'), data, follow=True)
+        self.assert_success_notice(response, 'Event added to your wedding plan.')
+        event = WeddingEvent.objects.get(budget=self.budget, name='Mehndi')
+        response = self.client.post(reverse('event_edit', args=[event.pk]), {**data, 'notes': 'Updated'}, follow=True)
+        self.assert_success_notice(response, 'Event updated.')
+        response = self.client.post(reverse('event_detail', args=[event.pk]), {'action': 'delete_event'}, follow=True)
+        self.assert_success_notice(response, 'Event deleted from your wedding plan.')
+
+    def test_shopping_add_edit_toggle_delete_have_feedback(self):
+        url = reverse('event_shopping_list', args=[self.event.pk])
+        data = {'name': 'Flowers', 'list_category': 'flowers', 'quantity': '1', 'unit_cost': '10'}
+        response = self.client.post(url, {'action': 'add_item', **data}, follow=True)
+        self.assert_success_notice(response, 'Shopping item added.')
+        item = self.event.shopping_items.get()
+        response = self.client.post(url, {'action': 'update_item', 'item_id': item.pk, **data, 'quantity': '2'}, follow=True)
+        self.assert_success_notice(response, 'Shopping item updated.')
+        response = self.client.post(url, {'action': 'toggle_item', 'item_id': item.pk}, follow=True)
+        self.assert_success_notice(response, 'Item marked as purchased.')
+        response = self.client.post(url, {'action': 'toggle_item', 'item_id': item.pk}, follow=True)
+        self.assert_success_notice(response, 'Item marked as To buy.')
+        response = self.client.post(url, {'action': 'delete_item', 'item_id': item.pk}, follow=True)
+        self.assert_success_notice(response, 'Shopping item deleted.')
+
+    def test_venue_and_guest_actions_have_feedback(self):
+        url = reverse('venue_list')
+        response = self.client.post(url, {'action': 'save_venue', 'name': 'Our hall'}, follow=True)
+        self.assert_success_notice(response, 'Venue added to your plan.')
+        venue = self.budget.venues.get()
+        response = self.client.post(url, {'action': 'update_venue', 'venue_id': venue.pk, 'name': 'Updated hall'}, follow=True)
+        self.assert_success_notice(response, 'Venue updated.')
+        response = self.client.post(url, {'action': 'delete_venue', 'venue_id': venue.pk}, follow=True)
+        self.assert_success_notice(response, 'Venue deleted from your plan.')
+        url = reverse('guest_list')
+        data = {'first_name': 'Family', 'rsvp_status': 'invited'}
+        response = self.client.post(url, {'action': 'save_guest', **data}, follow=True)
+        self.assert_success_notice(response, 'Guest added to your list.')
+        guest = self.budget.guests.get()
+        response = self.client.post(url, {'action': 'update_guest', 'guest_id': guest.pk, **data, 'last_name': 'Guest'}, follow=True)
+        self.assert_success_notice(response, 'Guest updated.')
+        response = self.client.post(url, {'action': 'delete_guest', 'guest_id': guest.pk}, follow=True)
+        self.assert_success_notice(response, 'Guest removed from your list.')
+
+    def test_membership_status_actions_and_invalid_admin_form_have_feedback(self):
+        self.user.is_staff = True
+        self.user.save(update_fields=['is_staff'])
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('member_status', args=[self.member.pk]), {'status': Member.Status.ACTIVE}, follow=True)
+        self.assert_success_notice(response, 'Membership status updated.')
+        response = self.client.post(reverse('member_status', args=[self.member.pk]), {'status': 'unknown'}, follow=True)
+        self.assertContains(response, 'data-level="error"', count=1)
+        self.assertContains(response, 'Choose a valid membership status.')
+        response = self.client.post(reverse('admin_shopping'), {'action': 'save_template', 'template-name': ''})
+        self.assertContains(response, 'data-level="error"', count=1)
+        self.assertContains(response, 'Name: This field is required.')
+        self.assertTrue(response.context['template_form'].errors)

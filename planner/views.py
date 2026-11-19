@@ -60,6 +60,7 @@ def signup(request):
             except IntegrityError:
                 form.add_error("email", "This email already has a login. Please log in or use a different email address.")
             else:
+                messages.success(request, 'Your registration has been received. Your membership is awaiting activation.')
                 return redirect("signup_complete")
     else:
         form = MemberSignupForm()
@@ -85,10 +86,12 @@ def member_portal(request):
                 budget = budget_form.save(commit=False)
                 budget.member = member
                 budget.save()
+                messages.success(request, 'Your wedding details and budget have been saved.')
                 return redirect("member_portal")
         elif action == "delete_event" and budget:
             event = get_object_or_404(WeddingEvent, pk=request.POST.get("event_id"), budget=budget)
             event.delete()
+            messages.success(request, 'Event deleted from your wedding plan.')
             return redirect("member_portal")
     events = budget.events.all() if budget else []
     timeline_items = [
@@ -150,6 +153,7 @@ def event_detail(request, event_id):
     event = get_object_or_404(WeddingEvent.objects.select_related("venue"), pk=event_id, budget__member=member)
     if request.method == "POST" and request.POST.get("action") == "delete_event":
         event.delete()
+        messages.success(request, 'Event deleted from your wedding plan.')
         return redirect("member_portal")
     return render(request, "planner/event_detail.html", {"event": event})
 
@@ -179,6 +183,7 @@ def event_form(request, event_id=None):
         except ValidationError as error:
             form.add_error(None, error)
         else:
+            messages.success(request, 'Event updated.' if event_id else 'Event added to your wedding plan.')
             return redirect("event_detail", event_id=saved_event.id)
 
     return render(request, "planner/event_form.html", {"form": form, "event": event})
@@ -219,6 +224,7 @@ def shopping_management(request):
                     preview = read_shopping_csv(import_form.cleaned_data['file'], event, import_form.cleaned_data['list_category'])
                     token = secrets.token_urlsafe(24)
                     request.session[key] = {'token': token, 'event_id': event.pk, 'rows': preview}
+                    messages.info(request, 'Review the import below before adding the items to your shopping list.')
                 except ValidationError as error:
                     import_form.add_error(None, error)
         elif action == 'confirm_import':
@@ -286,6 +292,7 @@ def event_shopping_list(request, event_id):
                     receipt_rows = ReceiptItemFormSet(initial=suggestions, form_kwargs={'event': event}, prefix='receipt')
                     receipt_token = secrets.token_urlsafe(24)
                     request.session[receipt_key] = receipt_token
+                    messages.info(request, 'Receipt scanned. Review the items below before confirming your purchases.')
                 except ValidationError as error:
                     receipt_form.add_error(None, error)
         elif action == "confirm_receipt":
@@ -316,21 +323,25 @@ def event_shopping_list(request, event_id):
                 item = item_form.save(commit=False)
                 item.event = event
                 item.save()
+                messages.success(request, 'Shopping item added.')
                 return redirect("event_shopping_list", event_id=event.id)
         elif action == "update_item":
             editing_item = get_object_or_404(ShoppingListItem, pk=request.POST.get("item_id"), event=event)
             item_form = ShoppingListItemForm(request.POST, instance=editing_item)
             if item_form.is_valid():
                 item_form.save()
+                messages.success(request, 'Shopping item updated.')
                 return redirect("event_shopping_list", event_id=event.id)
         elif action == "toggle_item":
             item = get_object_or_404(ShoppingListItem, pk=request.POST.get("item_id"), event=event)
             item.is_purchased = not item.is_purchased
             item.save(update_fields=["is_purchased"])
+            messages.success(request, 'Item marked as purchased.' if item.is_purchased else 'Item marked as To buy.')
             return redirect("event_shopping_list", event_id=event.id)
         elif action == "delete_item":
             item = get_object_or_404(ShoppingListItem, pk=request.POST.get("item_id"), event=event)
             item.delete()
+            messages.success(request, 'Shopping item deleted.')
             return redirect("event_shopping_list", event_id=event.id)
 
     grouped_items = {}
@@ -468,10 +479,12 @@ def venue_list(request):
                 venue = venue_form.save(commit=False)
                 venue.budget = budget
                 venue.save()
+                messages.success(request, 'Venue updated.' if action == 'update_venue' else 'Venue added to your plan.')
                 return redirect("venue_list")
         elif action == "delete_venue":
             venue = get_object_or_404(Venue, pk=request.POST.get("venue_id"), budget=budget)
             venue.delete()
+            messages.success(request, 'Venue deleted from your plan.')
             return redirect("venue_list")
 
     return render(request, "planner/venue_list.html", {
@@ -511,10 +524,12 @@ def guest_list(request):
                 guest.budget = budget
                 guest.save()
                 guest_form.save_m2m()
+                messages.success(request, 'Guest updated.' if action == 'update_guest' else 'Guest added to your list.')
                 return redirect("guest_list")
         elif action == "delete_guest":
             guest = get_object_or_404(WeddingGuest, pk=request.POST.get("guest_id"), budget=budget)
             guest.delete()
+            messages.success(request, 'Guest removed from your list.')
             return redirect("guest_list")
         elif action == "import_guests":
             upload = request.FILES.get("guest_file")
@@ -624,6 +639,9 @@ def member_status(request, member_id):
             if member.user_id:
                 member.user.is_active = new_status == Member.Status.ACTIVE
                 member.user.save(update_fields=["is_active"])
+            messages.success(request, 'Membership status updated.')
+        else:
+            messages.error(request, 'Choose a valid membership status.')
     return redirect("member_list")
 
 

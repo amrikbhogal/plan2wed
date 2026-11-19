@@ -1,11 +1,17 @@
 .message-stack {
   position: fixed;
+  left: auto;
+  bottom: auto;
   top: calc(var(--message-header-height, 96px) + 16px);
   right: 24px;
   z-index: 1100;
   display: grid;
   gap: 10px;
   width: min(390px, calc(100vw - 32px));
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
   max-height: calc(100dvh - var(--message-header-height, 96px) - 40px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -34,7 +40,7 @@
 .message-icon { width: 22px; height: 22px; margin-top: 2px; color: var(--notice-accent); }
 .message-copy { min-width: 0; overflow-wrap: anywhere; }
 .message-copy strong { display: block; font-size: 12px; line-height: 1.7; font-weight: 600; color: var(--notice-accent); }
-.message-copy p { margin: 4px 0 0; font-size: 13px; line-height: 1.65; }
+.message-copy p { margin: 4px 0 0; font-size: 13px; line-height: 1.65; white-space: pre-line; }
 .message-dismiss { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; margin-top: -6px; border: 0; border-radius: 50%; background: transparent; color: #766b60; cursor: pointer; }
 .message-dismiss svg { width: 16px; height: 16px; }
 .message-dismiss:hover { background: #493b360a; color: #791e2c; }

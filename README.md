@@ -221,3 +221,11 @@ once, including guest-list and table-plan feedback.
 
 Collect static files when deploying changes to `planner/messages.css` or
 `planner/messages.js`. No database migration is needed.
+
+The shared notification renderer also summarises bound form and formset errors,
+including signup/sign-in, duplicate events, receipts, CSV imports and staff
+catalogue forms. Field-level guidance remains beside inputs. Validation summaries
+are generated only for the current response, so they do not persist into the next
+page. Account, save, update and delete actions use the same message display.
+Notifications stay visible and dismissible above modal forms in browsers with
+popover support; inline form errors remain available as a fallback.
