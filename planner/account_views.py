@@ -37,7 +37,9 @@ def verify_email(request, token):
     if not valid_link:
         context['notification_errors'] = ['This verification link has expired, has already been used, or is invalid. Request a new link, or sign in if you have already verified your email.']
     response = render(request, 'planner/verify_email.html', context)
-    response['Referrer-Policy'] = 'no-referrer'
+    # HTTPS CSRF checks need a same-site Referer when an email webview omits
+    # Origin. Keep the verification token out of cross-site referrers.
+    response['Referrer-Policy'] = 'same-origin'
     return response
 
 

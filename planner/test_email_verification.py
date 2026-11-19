@@ -41,7 +41,7 @@ class EmailVerificationTests(TestCase):
         self.assertFalse(self.client.login(username=self.user.username, password=self.password))
         response = self.client.get(self.url)
         self.assertContains(response, 'Verify email and activate membership')
-        self.assertEqual(response['Referrer-Policy'], 'no-referrer')
+        self.assertEqual(response['Referrer-Policy'], 'same-origin')
         self.assertIn('no-store', response['Cache-Control'])
         self.assert_pending()
         response = self.client.post(self.url, follow=True)
@@ -172,6 +172,28 @@ class EmailVerificationTests(TestCase):
         self.assert_pending()
         response = client.post(self.url, {'csrfmiddlewaretoken': client.cookies['csrftoken'].value})
         self.assertRedirects(response, reverse('login'))
+
+    def test_https_confirmation_works_when_browser_does_not_send_origin(self):
+        client = Client(enforce_csrf_checks=True)
+        page = client.get(self.url, secure=True)
+        # Email webviews may omit Origin on a form POST. Simulate the browser
+        # following the page's policy when deciding whether to send Referer.
+        headers = {}
+        if page['Referrer-Policy'] != 'no-referrer':
+            headers['HTTP_REFERER'] = 'https://testserver' + self.url
+        response = client.post(self.url, {'csrfmiddlewaretoken': client.cookies['csrftoken'].value}, secure=True, **headers)
+        self.assertRedirects(response, reverse('login'), fetch_redirect_response=False)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.is_active)
+
+    def test_https_confirmation_still_requires_csrf_and_trusted_referrer(self):
+        client = Client(enforce_csrf_checks=True)
+        client.get(self.url, secure=True)
+        response = client.post(self.url, {'csrfmiddlewaretoken': client.cookies['csrftoken'].value}, secure=True, HTTP_REFERER='https://untrusted.example/')
+        self.assertEqual(response.status_code, 403)
+        response = client.post(self.url, secure=True, HTTP_REFERER='https://testserver' + self.url)
+        self.assertEqual(response.status_code, 403)
+        self.assert_pending()
 
     def test_mail_is_not_sent_before_commit_or_after_rollback(self):
         with self.captureOnCommitCallbacks(execute=True):
