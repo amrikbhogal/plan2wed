@@ -33,10 +33,10 @@
   color: #493b36;
   pointer-events: auto;
 }
-.site-message[data-level="success"] { --notice-accent: #46634c; --notice-background: #f1f6ef; }
+.site-message[data-level="success"] { --notice-accent: #205c35; --notice-background: #d9efdf; border-color: #a9cfb3; }
 .site-message[data-level="info"] { --notice-accent: #52657b; --notice-background: #f0f4f8; }
 .site-message[data-level="warning"] { --notice-accent: #826320; --notice-background: #fff6df; }
-.site-message[data-level="error"] { --notice-accent: #8a3440; --notice-background: #fbefec; }
+.site-message[data-level="error"] { --notice-accent: #922b36; --notice-background: #f8dadd; border-color: #e4acb2; }
 .message-icon { width: 22px; height: 22px; margin-top: 2px; color: var(--notice-accent); }
 .message-copy { min-width: 0; overflow-wrap: anywhere; }
 .message-copy strong { display: block; font-size: 12px; line-height: 1.7; font-weight: 600; color: var(--notice-accent); }

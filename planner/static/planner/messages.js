@@ -30,10 +30,10 @@
   raiseMessages();
   document.addEventListener('toggle', onDialogToggle, true);
 
-  stack.addEventListener('click', event => {
-    const button = event.target.closest('[data-dismiss-message]');
-    if (!button || !stack.contains(button)) return;
-    const notice = button.closest('.site-message');
+  const successTimers = new Map();
+  const dismissMessage = notice => {
+    clearTimeout(successTimers.get(notice));
+    successTimers.delete(notice);
     const focused = notice.contains(document.activeElement);
     const nextFocus = notice.nextElementSibling?.querySelector('[data-dismiss-message]')
       || notice.previousElementSibling?.querySelector('[data-dismiss-message]')
@@ -47,5 +47,29 @@
       document.removeEventListener('toggle', onDialogToggle, true);
       stack.remove();
     }
+  };
+
+  stack.addEventListener('click', event => {
+    const button = event.target.closest('[data-dismiss-message]');
+    if (button && stack.contains(button)) dismissMessage(button.closest('.site-message'));
+  });
+
+  // Give successes six seconds to read. Hovering or focusing a notice keeps it
+  // available; leaving starts a fresh interval. Errors remain until dismissed.
+  stack.querySelectorAll('.site-message[data-level="success"]').forEach(notice => {
+    const pause = () => {
+      clearTimeout(successTimers.get(notice));
+      successTimers.delete(notice);
+    };
+    const resume = () => {
+      pause();
+      if (!notice.isConnected || notice.matches(':hover') || notice.contains(document.activeElement)) return;
+      successTimers.set(notice, setTimeout(() => dismissMessage(notice), 6000));
+    };
+    notice.addEventListener('mouseenter', pause);
+    notice.addEventListener('mouseleave', resume);
+    notice.addEventListener('focusin', pause);
+    notice.addEventListener('focusout', () => queueMicrotask(resume));
+    resume();
   });
 })();
