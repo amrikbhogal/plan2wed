@@ -6,6 +6,10 @@
 <section class="card"><form method="get" class="search"><label for="event-search">Find an event</label><input id="event-search" type="search" name="q" value="{{ query }}" maxlength="160"><button class="button" type="submit">Search</button></form></section>
 <p class="muted">These are optional planning suggestions. Punjabi customs vary between families and are distinct from the Sikh marriage ceremony. Confirm arrangements with your family and Gurdwara where relevant.</p>
 <section class="table-card"><table><thead><tr><th>Event</th><th>About</th><th>Shopping ideas</th><th>Choose</th></tr></thead><tbody>
-{% for template in templates %}<tr><td><strong>{{ template.name }}</strong></td><td>{{ template.description }}</td><td>{{ template.shopping_suggestions.count }} suggested item{{ template.shopping_suggestions.count|pluralize }}</td><td><a class="button" href="{% url 'event_template_detail' template.pk %}">Review event & checklist</a></td></tr>{% empty %}<tr><td colspan="4">No suggested events found. You can add your own event or try a different search.</td></tr>{% endfor %}
+{% for template in templates %}<tr{% if template.already_in_plan %} class="event-in-plan"{% endif %}><td><strong>{{ template.name }}</strong></td><td>{{ template.description }}</td><td>{{ template.shopping_suggestions.count }} suggested item{{ template.shopping_suggestions.count|pluralize }}</td><td>{% if template.already_in_plan %}<button class="button" type="button" disabled>Already in your plan</button>{% else %}<a class="button" href="{% url 'event_template_detail' template.pk %}">Review event & checklist</a>{% endif %}</td></tr>{% empty %}<tr><td colspan="4">No suggested events found. You can add your own event or try a different search.</td></tr>{% endfor %}
 </tbody></table></section></main>
+<style>
+  .event-in-plan { background: #f4f4f2; color: #656963; }
+  .event-in-plan .button:disabled { background: #e5e6e2; border: 1px solid #d0d2cc; color: #5e625b; cursor: not-allowed; box-shadow: none; }
+</style>
 {% endblock %}

@@ -12,7 +12,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import IntegrityError, transaction
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
+from django.db.models.functions import Lower, Trim
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
@@ -381,7 +382,14 @@ def event_catalogue(request, template_id=None):
     if member is None:
         return redirect('member_portal')
     if template_id is None:
-        templates = EventTemplate.objects.filter(is_published=True).prefetch_related('shopping_suggestions')
+        planned_events = WeddingEvent.objects.filter(budget__member=member).alias(
+            _event_name=Lower(Trim('name')),
+        ).filter(
+            Q(event_template_id=OuterRef('pk')) | Q(_event_name=Lower(Trim(OuterRef('name')))),
+        )
+        templates = EventTemplate.objects.filter(is_published=True).annotate(
+            already_in_plan=Exists(planned_events),
+        ).prefetch_related('shopping_suggestions')
         query = request.GET.get('q', '').strip()[:160]
         if query:
             templates = templates.filter(Q(name__icontains=query) | Q(description__icontains=query))

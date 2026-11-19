@@ -160,6 +160,9 @@ through `/admin/planner/directoryvenue/` and test with a member account.
 **Browse suggested events** on My account opens an administrator-maintained
 catalogue. Members review a ceremony and select optional shopping suggestions,
 then create a new event or add the selected items to one of their own events.
+Events already in the current plan appear greyed out with a disabled
+"Already in your plan" button. Matching uses the original template or the event
+name, ignoring case and surrounding spaces, and applies when searching too.
 Suggestions use the existing shopping categories, start To buy and unpriced,
 and can be edited in the shopping list. Reusing an event template does not
 create duplicate template events; items with matching names/categories are

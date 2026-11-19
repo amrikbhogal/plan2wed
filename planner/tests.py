@@ -1230,6 +1230,53 @@ class EventDuplicatePreventionTests(TestCase):
         self.assertEqual(self.event.shopping_items.get(), existing_item)
         self.assertEqual(self.event.pending, Decimal('150'))
 
+    def test_catalogue_disables_matching_names_and_linked_renamed_events(self):
+        from .models import EventTemplate, WeddingEvent
+        manual = EventTemplate.objects.get(name='Reception')
+        manual.name = ' reception '
+        manual.save(update_fields=['name'])
+        linked = EventTemplate.objects.create(name='Original ceremony', is_published=True)
+        available = EventTemplate.objects.create(name='Available ceremony', is_published=True)
+        WeddingEvent.objects.create(budget=self.budget, event_template=linked, name='Our renamed ceremony')
+        response = self.client.get(reverse('event_catalogue'))
+        states = {template.pk: template.already_in_plan for template in response.context['templates']}
+        self.assertTrue(states[manual.pk])
+        self.assertTrue(states[linked.pk])
+        self.assertFalse(states[available.pk])
+        self.assertContains(response, 'type="button" disabled>Already in your plan</button>', count=2)
+        self.assertNotContains(response, f'href="{reverse("event_template_detail", args=[manual.pk])}"')
+        self.assertNotContains(response, f'href="{reverse("event_template_detail", args=[linked.pk])}"')
+        self.assertContains(response, f'href="{reverse("event_template_detail", args=[available.pk])}"')
+        self.assertEqual(self.budget.events.count(), 2)
+
+    def test_catalogue_search_and_deletion_refresh_already_planned_status(self):
+        from .models import EventTemplate
+        template = EventTemplate.objects.get(name='Reception')
+        url = reverse('event_catalogue')
+        response = self.client.get(url, {'q': 'RECEPTION'})
+        self.assertTrue(response.context['templates'].get(pk=template.pk).already_in_plan)
+        self.assertContains(response, 'Already in your plan', count=1)
+        self.event.delete()
+        response = self.client.get(url, {'q': 'RECEPTION'})
+        self.assertFalse(response.context['templates'].get(pk=template.pk).already_in_plan)
+        self.assertNotContains(response, 'Already in your plan')
+        self.assertContains(response, f'href="{reverse("event_template_detail", args=[template.pk])}"')
+
+    def test_catalogue_does_not_disable_events_from_another_members_plan(self):
+        from .models import EventTemplate, WeddingEvent
+        template = EventTemplate.objects.create(name='Another ceremony', is_published=True)
+        other_member = Member.objects.create(first_name='C', last_name='D', email='catalogue-other@example.com')
+        other_budget = WeddingBudget.objects.create(member=other_member)
+        WeddingEvent.objects.create(budget=other_budget, event_template=template, name=template.name)
+        response = self.client.get(reverse('event_catalogue'))
+        self.assertFalse(response.context['templates'].get(pk=template.pk).already_in_plan)
+        user = get_user_model().objects.create_user(username='catalogue-no-budget')
+        Member.objects.create(user=user, first_name='E', last_name='F', email='catalogue-empty@example.com')
+        self.client.force_login(user)
+        response = self.client.get(reverse('event_catalogue'))
+        self.assertFalse(any(template.already_in_plan for template in response.context['templates']))
+        self.assertNotContains(response, 'Already in your plan')
+
     def test_shared_event_catalogue_form_rejects_case_and_space_variants(self):
         from .forms import EventTemplateAdminForm
         from .models import EventTemplate
