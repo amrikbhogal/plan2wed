@@ -41,7 +41,9 @@ class Member(models.Model):
     joined_at = models.DateTimeField(auto_now_add=True)
     email_verified_at = models.DateTimeField(null=True, blank=True, editable=False)
     email_verification_sent_at = models.DateTimeField(null=True, blank=True, editable=False)
-    email_verification_nonce = models.UUIDField(default=uuid.uuid4, editable=False)
+    # Nullable so workers from the previous release can finish registrations
+    # during rollout. Sending a verification email always assigns a fresh nonce.
+    email_verification_nonce = models.UUIDField(default=uuid.uuid4, null=True, editable=False)
 
     class Meta:
         ordering = ["-joined_at"]

@@ -154,6 +154,15 @@ class EmailVerificationTests(TestCase):
         self.assertContains(response, 'data-level="error"', count=1)
         self.assertEqual(len(mail.outbox), 0)
 
+    def test_registration_from_an_older_worker_can_request_a_verification_link(self):
+        Member.objects.filter(pk=self.member.pk).update(email_verification_nonce=None)
+        self.assertContains(self.client.post(self.url), 'data-level="error"')
+        self.resend()
+        self.member.refresh_from_db()
+        self.assertIsNotNone(self.member.email_verification_nonce)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertRedirects(self.client.post(self.email_url()), reverse('login'))
+
     def test_csrf_is_required_to_activate_or_resend(self):
         client = Client(enforce_csrf_checks=True)
         self.assertEqual(client.post(self.url).status_code, 403)

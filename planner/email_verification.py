@@ -33,7 +33,8 @@ def pending_verifications():
 
 def matches_verification(member, payload):
     return (
-        member.email == payload.get('email')
+        member.email_verification_nonce is not None
+        and member.email == payload.get('email')
         and member.email.lower() == member.user.email.lower()
         and secrets.compare_digest(str(member.email_verification_nonce), str(payload.get('nonce', '')))
     )
