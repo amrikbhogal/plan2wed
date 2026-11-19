@@ -29,7 +29,7 @@
   border-left: 3px solid var(--notice-accent);
   border-radius: 10px;
   background: var(--notice-background);
-  box-shadow: 0 5px 18px #4b30200d;
+  box-shadow: none;
   color: #493b36;
   pointer-events: auto;
 }
