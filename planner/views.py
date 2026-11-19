@@ -61,7 +61,7 @@ def signup(request):
             except IntegrityError:
                 form.add_error("email", "This email already has a login. Please log in or use a different email address.")
             else:
-                messages.success(request, 'Your membership is registered. Check your email to verify your address and activate your account.')
+                messages.info(request, 'Please verify your email to activate your account. Open the verification email and confirm your address before signing in. Check your spam folder if it hasn’t arrived.')
                 return redirect("signup_complete")
     else:
         form = MemberSignupForm()
