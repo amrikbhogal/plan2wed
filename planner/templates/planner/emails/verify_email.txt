@@ -1,0 +1,14 @@
+Hello {{ member.first_name }},
+
+Welcome to Plan2Wed. Please verify your email address to activate your membership:
+
+{{ verification_url }}
+
+Open the link and select "Verify email and activate membership". You can then sign in with the email address and password you registered with.
+
+This link expires after 24 hours and can be used once. Requesting a new link replaces the previous one:
+{{ resend_url }}
+
+If you didn't register with Plan2Wed, you can ignore this email. Your account will remain inactive.
+
+Plan2Wed

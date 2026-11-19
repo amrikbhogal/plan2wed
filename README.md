@@ -69,19 +69,32 @@ Receipt OCR applies phone EXIF orientation, white-background greyscale contrast
 cleanup and automatic page orientation detection. Install requirements.txt before
 restarting the application after an update. Images are limited to 50 megapixels and resized before OCR.
 
-## Account approval emails and password resets
+## Email verification and password resets
 
-Each completed signup creates an inactive account and emails
-`SIGNUP_NOTIFICATION_EMAILS` (default: `info@plan2wed.co.uk`) after the database
-transaction commits. The message links to the member's Django admin screen.
-An administrator must sign in and set membership status to Active. Email links
-do not approve accounts by themselves. Delivery failures are logged; the pending
-account remains available under Members/admin for manual approval.
+Each completed signup creates a pending, inactive account and sends a verification
+email to the registration/login address after the database transaction commits.
+The member opens the signed link and selects **Verify email and activate membership**,
+which activates their login and membership together. Opening the link alone does
+not activate the account, so email scanners cannot consume it. Members then sign
+in using their chosen password. Administrator approval emails are no longer sent.
 
-The sign-in page includes **Forgot your password?** Approved, active accounts
+Links expire after 24 hours, are bound to the account's current email address,
+and become unusable after activation or when replaced by a resend. The signup
+confirmation and sign-in pages link to `/verify-email/resend/`. Resends use the
+same generic response for unknown, active and suspended accounts and are limited
+to once per minute per pending member. Delivery failures are logged and members
+can retry after that minute. Suspended accounts cannot activate through this flow.
+
+Apply migration `0020_member_email_verification` before restarting the new code.
+It adds verification timestamps and a token nonce; it does not change existing
+account statuses. Existing active logins continue to work. Existing pending
+members can use the resend page. Staff can still manage membership status manually.
+Verification timestamps are visible as read-only fields in the member admin.
+
+The sign-in page includes **Forgot your password?** Active accounts
 receive a single-use reset link valid for one hour. Unknown and inactive addresses
 receive the same confirmation page without an email. Resetting a password does
-not approve an account. No database migrations are required.
+not activate an account or verify its email address.
 
 Local development prints emails to the console by default. Production uses SMTP.
 Configure the variables in `.env.example` inside `/etc/plan2wed.env`, using your
@@ -90,12 +103,12 @@ secret and database settings. Do not commit SMTP credentials. For STARTTLS use
 port 587 with `EMAIL_USE_TLS=true` and `EMAIL_USE_SSL=false`; for implicit TLS use
 your provider's port (commonly 465), TLS false and SSL true. Never enable both.
 The provider must authorise `DEFAULT_FROM_EMAIL` and the domain's required
-SPF/DKIM DNS records. Set `PLAN2WED_SITE_URL=https://plan2wed.co.uk` so approval
+SPF/DKIM DNS records. Set `PLAN2WED_SITE_URL=https://plan2wed.co.uk` so verification
 and reset messages use the public site address.
 
-After configuration, restart the service and test a signup notification to the
-administrator, approve the test account, then request a reset from the sign-in
-page. Check delivery and spam folders. Email configuration must be completed
+After configuration, restart the service and register using a test inbox you own,
+confirm the verification email, then request a reset from the sign-in page.
+Check delivery and spam folders. Email configuration must be completed
 before releasing these features; local automated tests use an in-memory backend
 and do not verify delivery to real inboxes.
 

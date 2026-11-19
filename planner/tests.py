@@ -654,7 +654,7 @@ class AccountEmailTests(TestCase):
                 'email': 'alex@example.com', 'bride_name': 'Alex', 'groom_name': 'Sam',
                 'password1': 'LongUniquePassword!2026', 'password2': 'LongUniquePassword!2026'}
 
-    def test_signup_notifies_admin_after_commit_and_stays_pending(self):
+    def test_signup_emails_member_after_commit_and_stays_pending(self):
         from django.core import mail
         with self.captureOnCommitCallbacks(execute=True):
             response = self.client.post(reverse('signup'), self.signup_data())
@@ -663,8 +663,10 @@ class AccountEmailTests(TestCase):
         self.assertEqual(member.status, Member.Status.PENDING)
         self.assertFalse(member.user.is_active)
         self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].to, ['info@plan2wed.co.uk'])
-        self.assertIn(f'https://plan2wed.co.uk/admin/planner/member/{member.pk}/change/', mail.outbox[0].body)
+        self.assertEqual(mail.outbox[0].to, ['alex@example.com'])
+        self.assertIn('https://plan2wed.co.uk/verify-email/', mail.outbox[0].body)
+        self.assertIn('24 hours', mail.outbox[0].body)
+        self.assertNotIn('/admin/', mail.outbox[0].body)
         self.assertNotIn('LongUniquePassword', mail.outbox[0].body)
 
     def test_failed_email_does_not_lose_account(self):
@@ -675,6 +677,29 @@ class AccountEmailTests(TestCase):
                     response = self.client.post(reverse('signup'), self.signup_data())
         self.assertEqual(response.status_code, 302)
         self.assertTrue(Member.objects.filter(email='alex@example.com').exists())
+
+    def test_couple_and_representative_signup_email_links_activate_their_accounts(self):
+        import re
+        from django.core import mail
+        for role in (Member.SignupRole.COUPLE, Member.SignupRole.REPRESENTATIVE):
+            with self.subTest(role=role):
+                self.client.logout()
+                data = self.signup_data()
+                data.update(signup_role=role, email=f'{role}@example.com')
+                with self.captureOnCommitCallbacks(execute=True):
+                    self.client.post(reverse('signup'), data)
+                member = Member.objects.get(email=data['email'])
+                self.assertFalse(member.user.is_active)
+                url = re.search(r'https://plan2wed.co.uk(/verify-email/[^\s]+)', mail.outbox[-1].body)[1]
+                self.assertContains(self.client.get(url), 'Verify email and activate membership')
+                self.assertRedirects(self.client.post(url), reverse('login'))
+                member.refresh_from_db()
+                self.assertEqual(member.status, Member.Status.ACTIVE)
+                self.assertIsNotNone(member.email_verified_at)
+                self.assertTrue(self.client.login(username=data['email'], password=data['password1']))
+                portal = self.client.get(reverse('member_portal'))
+                self.assertEqual(portal.status_code, 200)
+                self.assertEqual(portal.context['budget'].member_id, member.pk)
 
     def test_password_reset_changes_password_and_token_cannot_be_reused(self):
         import re

@@ -19,11 +19,14 @@ from django.contrib.auth import views as auth_views
 from django.urls import path
 from planner import views as planner_views
 from planner import catalogue_admin_views
+from planner import account_views
 from planner.account_views import MemberLoginView, MemberLogoutView, MemberPasswordResetView, MemberPasswordResetConfirmView
 
 urlpatterns = [
     path('', planner_views.signup, name='signup'),
     path('thanks/', planner_views.signup_complete, name='signup_complete'),
+    path('verify-email/resend/', account_views.resend_verification, name='resend_verification'),
+    path('verify-email/<str:token>/', account_views.verify_email, name='verify_email'),
     path('login/', MemberLoginView.as_view(template_name='planner/login.html'), name='login'),
     path('password-reset/', MemberPasswordResetView.as_view(
         template_name='planner/password_reset_form.html',

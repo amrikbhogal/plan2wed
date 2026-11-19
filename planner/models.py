@@ -1,6 +1,7 @@
 from .event_descriptions import description_source, suggested_description
 
 from decimal import Decimal
+import uuid
 
 from django.db import models, transaction
 from django.conf import settings
@@ -38,6 +39,9 @@ class Member(models.Model):
     signup_role = models.CharField(max_length=20, choices=SignupRole.choices, default=SignupRole.COUPLE)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
     joined_at = models.DateTimeField(auto_now_add=True)
+    email_verified_at = models.DateTimeField(null=True, blank=True, editable=False)
+    email_verification_sent_at = models.DateTimeField(null=True, blank=True, editable=False)
+    email_verification_nonce = models.UUIDField(default=uuid.uuid4, editable=False)
 
     class Meta:
         ordering = ["-joined_at"]

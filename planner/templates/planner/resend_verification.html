@@ -1,0 +1,10 @@
+{% extends 'planner/base.html' %}
+{% block title %}Resend verification email · Plan2Wed{% endblock %}
+{% block content %}
+<main class="page success-wrap"><section class="card" style="width:min(100%,460px)">
+  <div class="eyebrow">Your membership</div><h1 style="font-size:32px">Verify your email</h1>
+  <p class="muted">Enter the email address you registered with to request a fresh activation link. Check your spam folder if you haven’t received it.</p>
+  <form method="post">{% csrf_token %}<div class="field"><label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>{{ form.email }}</div><button class="button full" type="submit">Send verification email</button></form>
+  <p class="fineprint">Already verified? <a href="{% url 'login' %}">Sign in</a></p>
+</section></main>
+{% endblock %}

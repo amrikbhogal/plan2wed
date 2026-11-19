@@ -2,6 +2,56 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.views import LoginView, LogoutView, PasswordResetView, PasswordResetConfirmView
+from django.contrib.auth import get_user_model
+from django.db import transaction
+from django.shortcuts import redirect, render
+from django.utils import timezone
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_http_methods
+
+from .email_verification import matches_verification, pending_verifications, request_email_verification, verification_payload
+from .forms import VerificationResendForm
+from .models import Member
+
+
+@never_cache
+@require_http_methods(['GET', 'POST'])
+def verify_email(request, token):
+    payload = verification_payload(token)
+    valid_link = False
+    if payload:
+        with transaction.atomic():
+            member = pending_verifications().select_for_update(of=('self',)).select_related('user').filter(pk=payload['member_id']).first()
+            if member is not None:
+                member.user = get_user_model().objects.select_for_update().get(pk=member.user_id)
+                valid_link = not (member.user.is_active or member.user.is_staff or member.user.is_superuser) and matches_verification(member, payload)
+                if valid_link and request.method == 'POST':
+                    member.status = Member.Status.ACTIVE
+                    member.email_verified_at = timezone.now()
+                    member.save(update_fields=['status', 'email_verified_at'])
+                    member.user.is_active = True
+                    member.user.save(update_fields=['is_active'])
+                    messages.success(request, 'Your email is verified and your membership is active. You can now sign in.')
+                    return redirect('login')
+    context = {'valid_link': valid_link}
+    if not valid_link:
+        context['notification_errors'] = ['This verification link has expired, has already been used, or is invalid. Request a new link, or sign in if you have already verified your email.']
+    response = render(request, 'planner/verify_email.html', context)
+    response['Referrer-Policy'] = 'no-referrer'
+    return response
+
+
+@never_cache
+@require_http_methods(['GET', 'POST'])
+def resend_verification(request):
+    form = VerificationResendForm(request.POST if request.method == 'POST' else None)
+    if request.method == 'POST' and form.is_valid():
+        member_id = pending_verifications().filter(email__iexact=form.cleaned_data['email']).values_list('pk', flat=True).first()
+        if member_id is not None:
+            request_email_verification(member_id)
+        messages.info(request, 'If that email belongs to an unverified registration, we’ve sent a verification link. Check your spam folder too. Please allow a minute before requesting another.')
+        return redirect('resend_verification')
+    return render(request, 'planner/resend_verification.html', {'form': form})
 
 
 class MemberAuthenticationForm(AuthenticationForm):

@@ -1,0 +1,17 @@
+{% extends 'planner/base.html' %}
+{% block title %}Verify your email · Plan2Wed{% endblock %}
+{% block content %}
+<main class="page success-wrap"><section class="card" style="width:min(100%,480px)">
+  <div class="eyebrow">Your membership</div>
+  {% if valid_link %}
+  <h1 style="font-size:32px">Verify your email</h1>
+  <p class="muted">Confirm your email address to activate your Plan2Wed membership. You can then sign in and start planning.</p>
+  <form method="post">{% csrf_token %}<button class="button full" type="submit">Verify email and activate membership</button></form>
+  {% else %}
+  <h1 style="font-size:32px">Request a new link</h1>
+  <p class="muted">This link is no longer available. Verification links last 24 hours and can only be used once.</p>
+  <a class="button" href="{% url 'resend_verification' %}">Send a new verification email</a>
+  {% endif %}
+  <p class="fineprint">Already verified? <a href="{% url 'login' %}">Sign in</a></p>
+</section></main>
+{% endblock %}

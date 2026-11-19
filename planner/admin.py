@@ -8,7 +8,7 @@ class MemberAdmin(admin.ModelAdmin):
     list_display = ("couple", "email", "signup_role", "status", "joined_at")
     list_filter = ("signup_role", "status", "joined_at")
     search_fields = ("first_name", "last_name", "email", "wedding_budget__bride_name", "wedding_budget__groom_name")
-    readonly_fields = ("joined_at",)
+    readonly_fields = ("joined_at", "email_verified_at", "email_verification_sent_at")
 
     @admin.display(description="Couple")
     def couple(self, obj):

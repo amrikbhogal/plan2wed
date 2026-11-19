@@ -6,6 +6,10 @@ from django.contrib.auth.password_validation import validate_password
 from .models import DirectoryVenue, EventTemplate, SuggestedShoppingItem, SeatingTable, SeatingAssignment, Member, ShoppingListItem, Venue, WeddingBudget, WeddingEvent, WeddingGuest
 
 
+class VerificationResendForm(forms.Form):
+    email = forms.EmailField(label='Registration email', max_length=254, widget=forms.EmailInput(attrs={'autocomplete': 'email'}))
+
+
 class MemberSignupForm(forms.ModelForm):
     signup_role = forms.ChoiceField(
         label="Who is signing up?",

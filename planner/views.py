@@ -22,7 +22,7 @@ from .forms import SeatingTableForm, MemberSignupForm, ShoppingListItemForm, Ven
 from .forms import ReceiptUploadForm, ReceiptItemFormSet, ShoppingManagementImportForm, ShoppingManagementItemForm
 from .shopping_import import read_shopping_csv
 from .receipts import scan_receipt, receipt_items
-from .notifications import notify_administrator
+from .email_verification import request_email_verification
 from .models import DirectoryVenue, EventTemplate, events_named
 from .forms import EventTemplatePlanForm
 from .forms import VenueDirectorySearchForm
@@ -57,11 +57,11 @@ def signup(request):
                         groom_phone=form.cleaned_data["groom_phone"],
                     )
                     request.session["signup_role"] = member.signup_role
-                    transaction.on_commit(lambda: notify_administrator(member), robust=True)
+                    request_email_verification(member.pk)
             except IntegrityError:
                 form.add_error("email", "This email already has a login. Please log in or use a different email address.")
             else:
-                messages.success(request, 'Your registration has been received. Your membership is awaiting activation.')
+                messages.success(request, 'Your membership is registered. Check your email to verify your address and activate your account.')
                 return redirect("signup_complete")
     else:
         form = MemberSignupForm()
