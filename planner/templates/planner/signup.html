@@ -28,6 +28,7 @@
     </div>
     <div class="hero-art" aria-label="Plan2Wed, a beautiful beginning">
       <div class="invitation">
+        <img class="invitation-flowers" src="{% static 'planner/wedding_flowers.png' %}" alt="" aria-hidden="true" width="1312" height="1200">
         <div class="invitation-topline">A beautiful beginning</div>
         <img class="invitation-logo" src="{% static 'planner/plan2wed_logo_lotus_woven_leaves_v2.png' %}" alt="Plan2Wed" width="2172" height="724">
         <div class="invitation-divider"><span></span><span aria-hidden="true">✧</span><span></span></div>
@@ -141,6 +142,7 @@
 .invitation{position:relative;isolation:isolate;width:100%;height:100cqw;aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:11%;color:#791e2c;background:transparent;border:1px solid rgba(158,139,95,.22)}
 .invitation:before{content:"";position:absolute;inset:26px;border:1px solid rgba(158,139,95,.1);border-radius:50%;pointer-events:none}
 .invitation:after{content:"";position:absolute;top:14%;right:14%;width:10px;height:10px;border-radius:50%;background:#a58d58;box-shadow:0 0 0 8px var(--cream);pointer-events:none}
+.invitation-flowers{position:absolute;left:-10%;bottom:-5%;width:48%;height:auto;pointer-events:none}
 .invitation-topline{line-height:1.4;white-space:nowrap;text-transform:uppercase;font-size:9px;letter-spacing:2px;color:#906c36;margin-bottom:12px}.invitation-logo{width:84%;height:auto;display:block;filter:drop-shadow(0 8px 18px #9a743b20)}
 .invitation-divider{line-height:1;display:flex;align-items:center;gap:10px;width:40%;margin:10px 0 6px;color:#b48a46;font-size:18px}.invitation-divider>span:first-child,.invitation-divider>span:last-child{flex:1;height:1px;background:#b48a4670}.invitation-heading{font:500 26px/1.2 'Playfair Display',serif;text-align:center;margin:6px 0 10px;color:#791e2c;letter-spacing:-.3px}.invitation-caption{line-height:1.4;font-size:10px;color:#7b6b65;letter-spacing:1px;margin:0;text-align:center}.art-caption{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:32px;color:#9a7c56;font:italic 12px 'Playfair Display',serif;text-align:center}.art-caption>span{height:1px;width:22px;background:#d9bf93;flex:none}
 
