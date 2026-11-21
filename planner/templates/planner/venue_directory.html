@@ -13,8 +13,8 @@
 </style>
 <main class="page dashboard">
 <div class="heading-row"><div><a class="muted" href="{% url 'member_portal' %}#events">← Back to your wedding plan</a><div class="eyebrow" style="margin-top:20px">Explore</div><h1>Venue directory</h1><p class="muted">Browse possible venues and add your favourites to your plan.</p></div><a class="button" href="{% url 'venue_list' %}">Manage my venues</a></div>
-<section class="card"><h2>Find a venue</h2><form method="get">{{ search_form.non_field_errors }}<div class="details-grid">{% for field in search_form %}{% include 'planner/includes/detail_field.html' with field=field %}{% endfor %}</div><div class="form-actions"><button class="button" type="submit">Search venues</button><a class="status-select" href="{% url 'venue_directory' %}">Clear filters</a></div></form></section>
-<p class="muted">{{ page_obj.paginator.count }} venue{{ page_obj.paginator.count|pluralize }} found. Contact venues directly to confirm availability, capacity and facilities.</p>
+<section class="card"><h2>Find a venue</h2><form method="get">{{ search_form.non_field_errors }}<div class="details-grid">{% for field in search_form %}{% include 'planner/includes/detail_field.html' with field=field %}{% endfor %}</div><div class="form-actions"><button class="button" type="submit">Search venues</button><a class="status-select" href="{% url 'venue_directory' %}?location=">Clear filters</a></div></form></section>
+<p class="muted">{{ page_obj.paginator.count }} venue{{ page_obj.paginator.count|pluralize }} found.{% if search_form.location.value %} Showing venues matching {{ search_form.location.value }}. <a href="{% url 'venue_directory' %}?location=">Browse all locations</a>.{% endif %} Contact venues directly to confirm availability, capacity and facilities.</p>
 {% if page_obj %}<section class="venue-directory-grid" aria-label="Venue listings">
 {% for venue in page_obj %}<article class="card directory-venue">
 {% if venue.photo_url %}<img src="{{ venue.photo_url }}" alt="{{ venue.name }}" loading="lazy" referrerpolicy="no-referrer">{% endif %}

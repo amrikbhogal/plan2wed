@@ -73,6 +73,7 @@ class Member(models.Model):
 class WeddingBudget(models.Model):
     member = models.OneToOneField(Member, on_delete=models.CASCADE, related_name="wedding_budget")
     wedding_date = models.DateField(null=True, blank=True)
+    wedding_location = models.CharField(max_length=160, blank=True)
     has_separate_meal = models.BooleanField(default=False)
     meal_date = models.DateField(null=True, blank=True)
     bride_name = models.CharField(max_length=160, blank=True)

@@ -99,7 +99,7 @@ class WeddingBudgetForm(forms.ModelForm):
     class Meta:
         model = WeddingBudget
         fields = [
-            "wedding_date",
+            "wedding_date", "wedding_location",
             "has_separate_meal", "meal_date",
             "bride_name", "bride_email", "bride_phone",
             "groom_name", "groom_email", "groom_phone",
@@ -107,6 +107,7 @@ class WeddingBudgetForm(forms.ModelForm):
         ]
         labels = {
             "wedding_date": "Wedding date",
+            "wedding_location": "Wedding location",
             "meal_date": "Reception date (if different)",
             "bride_name": "Bride’s name",
             "bride_email": "Bride’s email",
@@ -118,6 +119,7 @@ class WeddingBudgetForm(forms.ModelForm):
         }
         widgets = {
             "wedding_date": forms.DateInput(attrs={"type": "date"}),
+            "wedding_location": forms.TextInput(attrs={"placeholder": "Town, city or region"}),
             "meal_date": forms.DateInput(attrs={"type": "date"}),
             "bride_name": forms.TextInput(attrs={"autocomplete": "name"}),
             "bride_email": forms.EmailInput(attrs={"autocomplete": "email"}),

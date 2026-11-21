@@ -442,7 +442,11 @@ def venue_directory(request):
         messages.success(request, 'Venue added to your plan. Open Manage venues to assign it to an event.' if created else 'This venue is already in your plan.')
         return redirect('venue_directory')
     venues = DirectoryVenue.objects.filter(is_published=True)
-    search_form = VenueDirectorySearchForm(request.GET)
+    search_params = request.GET.copy()
+    budget = getattr(member, 'wedding_budget', None) if member else None
+    if 'location' not in search_params and budget and budget.wedding_location:
+        search_params['location'] = budget.wedding_location
+    search_form = VenueDirectorySearchForm(search_params)
     if search_form.is_valid():
         filters = search_form.cleaned_data
         if filters['query']:
@@ -456,7 +460,7 @@ def venue_directory(request):
     else:
         venues = venues.none()
     page = Paginator(venues, 12).get_page(request.GET.get('page'))
-    query_params = request.GET.copy()
+    query_params = search_params.copy()
     query_params.pop('page', None)
     return render(request, 'planner/venue_directory.html', {
         'search_form': search_form, 'page_obj': page, 'query_params': query_params.urlencode(),

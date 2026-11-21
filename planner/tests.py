@@ -904,6 +904,28 @@ class ShoppingListImportTests(TestCase):
 
 
 class VenueDirectoryTests(TestCase):
+    def test_wedding_location_defaults_venue_search_and_can_be_overridden(self):
+        from .models import DirectoryVenue
+        WeddingBudget.objects.create(member=self.member, wedding_location='Ipswich')
+        DirectoryVenue.objects.create(name='London Hall', location='London', is_published=True)
+        response = self.client.get(self.url)
+        self.assertContains(response, 'Example Hall')
+        self.assertNotContains(response, 'London Hall')
+        response = self.client.get(self.url, {'location': 'London'})
+        self.assertContains(response, 'London Hall')
+        self.assertNotContains(response, 'Example Hall')
+        response = self.client.get(self.url, {'location': ''})
+        self.assertContains(response, 'Example Hall')
+        self.assertContains(response, 'London Hall')
+
+    def test_wedding_location_is_saved_with_details(self):
+        response = self.client.post(reverse('member_portal'), {
+            'action': 'save_budget', 'wedding_location': 'Ipswich',
+            'has_separate_meal': 'False', 'allocated': '1000',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(WeddingBudget.objects.get(member=self.member).wedding_location, 'Ipswich')
+
     def setUp(self):
         from .models import DirectoryVenue
         self.user = get_user_model().objects.create_user(username='venue-browser')

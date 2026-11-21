@@ -44,6 +44,8 @@
         <legend>Dates &amp; celebrations</legend>
         <div class="details-grid">
           {% include 'planner/includes/detail_field.html' with field=budget_form.wedding_date %}
+          {% include 'planner/includes/detail_field.html' with field=budget_form.wedding_location %}
+          <p class="muted details-wide">Save your wedding location to see venue suggestions in that area. <a href="{% url 'venue_directory' %}">Browse suggested venues</a></p>
           <div class="details-wide">{% include 'planner/includes/detail_field.html' with field=budget_form.has_separate_meal %}</div>
           <div id="reception-date-field"{% if budget_form.has_separate_meal.value != True and budget_form.has_separate_meal.value != 'True' %} hidden{% endif %}>{% include 'planner/includes/detail_field.html' with field=budget_form.meal_date %}</div>
         </div>
