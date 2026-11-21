@@ -45,7 +45,7 @@
         <div class="details-grid">
           {% include 'planner/includes/detail_field.html' with field=budget_form.wedding_date %}
           <div class="details-wide">{% include 'planner/includes/detail_field.html' with field=budget_form.has_separate_meal %}</div>
-          {% include 'planner/includes/detail_field.html' with field=budget_form.meal_date %}
+          <div id="reception-date-field"{% if budget_form.has_separate_meal.value != True and budget_form.has_separate_meal.value != 'True' %} hidden{% endif %}>{% include 'planner/includes/detail_field.html' with field=budget_form.meal_date %}</div>
         </div>
       </fieldset>
       <div class="details-grid couple-details">
@@ -80,5 +80,20 @@
 <style>
 .wedding-details-dialog{width:min(900px,calc(100% - 32px))}
 .wedding-details-dialog .field select{width:100%;min-height:44px;border:1px solid var(--line);border-radius:6px;padding:0 12px;background:white;color:var(--ink);font:inherit}.timeline-card-heading strong{font:500 17px 'Playfair Display',serif}</style>
-<script>const weddingDetailsDialog=document.getElementById('wedding-details');weddingDetailsDialog.addEventListener('click',function(event){if(event.target===this)this.close();});{% if budget_form.errors %}weddingDetailsDialog.showModal();{% endif %}</script>
+<script>
+const weddingDetailsDialog = document.getElementById('wedding-details');
+if (weddingDetailsDialog) {
+  weddingDetailsDialog.addEventListener('click', function(event) {
+    if (event.target === this) this.close();
+  });
+  const separateReception = weddingDetailsDialog.querySelector('[name="has_separate_meal"]');
+  const receptionDateField = document.getElementById('reception-date-field');
+  function updateReceptionDateVisibility() {
+    receptionDateField.hidden = separateReception.value !== 'True';
+  }
+  separateReception.addEventListener('change', updateReceptionDateVisibility);
+  updateReceptionDateVisibility();
+  {% if budget_form.errors %}weddingDetailsDialog.showModal();{% endif %}
+}
+</script>
 {% endblock %}
