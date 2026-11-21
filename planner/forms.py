@@ -107,7 +107,7 @@ class WeddingBudgetForm(forms.ModelForm):
         ]
         labels = {
             "wedding_date": "Wedding date",
-            "meal_date": "Meal / reception date (if different)",
+            "meal_date": "Reception date (if different)",
             "bride_name": "Bride’s name",
             "bride_email": "Bride’s email",
             "bride_phone": "Bride’s phone",
