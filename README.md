@@ -247,3 +247,31 @@ are generated only for the current response, so they do not persist into the nex
 page. Account, save, update and delete actions use the same message display.
 Notifications stay visible and dismissible above modal forms in browsers with
 popover support; inline form errors remain available as a fallback.
+
+## Internet venue search
+
+The venue directory supports on-demand Google Places API (New) Text Search.
+Set `GOOGLE_PLACES_API_KEY` in the service environment (`/etc/plan2wed.env` on
+production), enable Places API (New) and billing in the Google Cloud project,
+and restrict the key to that API and the server's outbound IP address. Configure
+provider quotas and billing alerts before enabling public use. Restart the app
+after changing the environment. Never commit the key.
+
+Members submit **Search internet venues** with a town/city/region, venue type
+and optional name/facilities. Searches return up to 12 results, with an eight
+second timeout and a ten second cooldown per member in Django's cache. With the
+default local-memory cache, that cooldown is per worker; provider quotas remain
+the spending limit. Ordinary directory browsing does not call the API. Results
+are displayed with Google Maps attribution and links, and are not persisted or
+added to the shared directory. Capacity is not verified or filtered by the API.
+Missing keys and provider failures leave the existing directory usable.
+
+Before activation, verify a real location search using the configured key and
+review the site's public terms and privacy policy against Google's Places
+requirements. Mocked tests verify request construction and failure handling but
+do not establish live provider access.
+
+Provider documentation:
+- https://developers.google.com/maps/documentation/places/web-service/text-search
+- https://developers.google.com/maps/documentation/places/web-service/get-api-key
+- https://developers.google.com/maps/documentation/places/web-service/policies

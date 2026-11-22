@@ -2,6 +2,9 @@ import csv
 import io
 import secrets
 from django.core.exceptions import ValidationError
+from django.conf import settings
+from django.core.cache import cache
+from .venue_search import search_internet_venues, VenueSearchError
 from decimal import Decimal
 
 from django.utils import timezone
@@ -429,10 +432,13 @@ def event_catalogue(request, template_id=None):
 @never_cache
 @login_required
 def venue_directory(request):
+    internet_search = request.method == 'POST' and request.POST.get('action') == 'internet_search'
+    internet_results = None
+    internet_error = ''
     member = getattr(request.user, 'member_profile', None)
     if member is None:
         return redirect('member_portal')
-    if request.method == 'POST':
+    if request.method == 'POST' and not internet_search:
         listing = get_object_or_404(DirectoryVenue, pk=request.POST.get('venue_id') if request.POST.get('venue_id', '').isdigit() else None, is_published=True)
         budget, _ = WeddingBudget.objects.get_or_create(member=member)
         _, created = Venue.objects.get_or_create(budget=budget, directory_entry=listing, defaults={
@@ -442,7 +448,7 @@ def venue_directory(request):
         messages.success(request, 'Venue added to your plan. Open Manage venues to assign it to an event.' if created else 'This venue is already in your plan.')
         return redirect('venue_directory')
     venues = DirectoryVenue.objects.filter(is_published=True)
-    search_params = request.GET.copy()
+    search_params = (request.POST if internet_search else request.GET).copy()
     budget = getattr(member, 'wedding_budget', None) if member else None
     if 'location' not in search_params and budget and budget.wedding_location:
         search_params['location'] = budget.wedding_location
@@ -457,12 +463,25 @@ def venue_directory(request):
             venues = venues.filter(venue_type=filters['venue_type'])
         if filters['capacity']:
             venues = venues.filter(capacity__gte=filters['capacity'])
+        if internet_search:
+            try:
+                if not filters['location']:
+                    raise VenueSearchError('Enter a town, city or region to search for venues nearby.')
+                if settings.GOOGLE_PLACES_API_KEY and not cache.add(f'venue-search:{request.user.pk}', True, timeout=10):
+                    raise VenueSearchError('Please wait a few seconds before searching again.')
+                internet_results = search_internet_venues(filters['location'], filters['venue_type'], filters['query'])
+            except VenueSearchError as error:
+                internet_error = str(error)
     else:
         venues = venues.none()
     page = Paginator(venues, 12).get_page(request.GET.get('page'))
     query_params = search_params.copy()
+    query_params.pop('csrfmiddlewaretoken', None)
+    query_params.pop('action', None)
     query_params.pop('page', None)
     return render(request, 'planner/venue_directory.html', {
+        'internet_results': internet_results, 'internet_error': internet_error,
+        'internet_form': VenueDirectorySearchForm(search_params, auto_id='internet_%s'),
         'search_form': search_form, 'page_obj': page, 'query_params': query_params.urlencode(),
         'saved_venue_ids': set(Venue.objects.filter(budget__member=member, directory_entry__isnull=False).values_list('directory_entry_id', flat=True)),
     })
