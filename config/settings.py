@@ -138,7 +138,6 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
 EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'false').lower() == 'true'
 EMAIL_TIMEOUT = 10
-GOOGLE_PLACES_API_KEY = os.environ.get('GOOGLE_PLACES_API_KEY', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Plan2Wed <info@plan2wed.co.uk>')
 SIGNUP_NOTIFICATION_EMAILS = [email.strip() for email in os.environ.get('SIGNUP_NOTIFICATION_EMAILS', 'info@plan2wed.co.uk').split(',') if email.strip()]
 PLAN2WED_SITE_URL = os.environ.get('PLAN2WED_SITE_URL', 'http://localhost:8000').rstrip('/')

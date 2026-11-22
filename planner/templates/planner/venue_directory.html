@@ -13,28 +13,9 @@
 </style>
 <main class="page dashboard">
 <div class="heading-row"><div><a class="muted" href="{% url 'member_portal' %}#events">← Back to your wedding plan</a><div class="eyebrow" style="margin-top:20px">Explore</div><h1>Venue directory</h1><p class="muted">Browse possible venues and add your favourites to your plan.</p></div><a class="button" href="{% url 'venue_list' %}">Manage my venues</a></div>
-<section class="card"><h2>Find a venue</h2><form method="get">{{ search_form.non_field_errors }}<div class="details-grid">{% for field in search_form %}{% include 'planner/includes/detail_field.html' with field=field %}{% endfor %}</div><div class="form-actions"><button class="button" type="submit">Search venues</button><a class="status-select" href="{% url 'venue_directory' %}?location=">Clear filters</a></div></form></section>
-<section class="card" style="margin-top:20px" aria-labelledby="internet-venues-heading">
-<h2 id="internet-venues-heading">Search the internet</h2>
-<p class="muted">Find more venues near your wedding location. Confirm capacity and availability directly with each venue.</p>
-<form method="post">
-{% csrf_token %}<input type="hidden" name="action" value="internet_search">
-<div class="details-grid">{% for field in internet_form %}{% include 'planner/includes/detail_field.html' with field=field %}{% endfor %}</div>
-<button class="button" type="submit">Search internet venues</button>
-</form>
-{% if internet_error %}<p role="alert">{{ internet_error }}</p>{% endif %}
-{% if internet_results != None %}
-<p class="muted">Internet results. Guest capacity is not verified by this search.</p>
-<div class="venue-directory-grid">
-{% for venue in internet_results %}<article class="directory-venue card">
-<h3>{{ venue.name }}</h3><p>{{ venue.address }}</p>
-{% if venue.maps_url %}<a class="status-select" href="{{ venue.maps_url }}" target="_blank" rel="noopener noreferrer">View on Google Maps</a>{% endif %}
-{% for attribution in venue.attributions %}<p>{% if attribution.url %}<a href="{{ attribution.url }}" target="_blank" rel="noopener noreferrer">{{ attribution.name }}</a>{% else %}{{ attribution.name }}{% endif %}</p>{% endfor %}
-</article>{% empty %}<p>No internet venues found. Try another location or venue type.</p>{% endfor %}
-</div>
-<p translate="no" style="font-family:Arial,sans-serif;font-style:normal;font-weight:400;font-size:14px;letter-spacing:normal;white-space:nowrap;color:#5e5e5e">Google Maps</p>
-{% endif %}
-</section>
+<section class="card"><h2>Find a venue</h2><form method="get" rel="noopener noreferrer">{{ search_form.non_field_errors }}<div class="details-grid">{% for field in search_form %}{% include 'planner/includes/detail_field.html' with field=field %}{% endfor %}</div><div class="form-actions"><button class="button" type="submit">Search venues</button><button class="status-select" type="submit" name="external_search" value="maps" formtarget="_blank" rel="noopener noreferrer">Search Google Maps</button><button class="status-select" type="submit" name="external_search" value="web" formtarget="_blank" rel="noopener noreferrer">Search the web</button><a class="status-select" href="{% url 'venue_directory' %}?location=">Clear filters</a></div></form></section>
+<p class="muted">Google Maps and web searches open in a new tab using the location, venue type and other details above. Confirm capacity and availability with the venue.</p>
+{% if request.user.member_profile %}<p class="muted">Found a venue online? <a href="{% url 'venue_list' %}#venue-form">Add it to your venues</a>.</p>{% endif %}
 <p class="muted">{{ page_obj.paginator.count }} venue{{ page_obj.paginator.count|pluralize }} found.{% if search_form.location.value %} Showing venues matching {{ search_form.location.value }}. <a href="{% url 'venue_directory' %}?location=">Browse all locations</a>.{% endif %} Contact venues directly to confirm availability, capacity and facilities.</p>
 {% if page_obj %}<section class="venue-directory-grid" aria-label="Venue listings">
 {% for venue in page_obj %}<article class="card directory-venue">
