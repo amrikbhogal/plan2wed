@@ -258,3 +258,19 @@ Members can manually add venues they find through Manage venues. Confirm
 availability and capacity directly with each venue.
 
 Maps URL documentation: https://developers.google.com/maps/documentation/urls/get-started
+
+## Add a venue from its website
+
+Manage venues includes **Add from a website**. Paste a public HTTPS venue or
+contact page to suggest a name, address, phone and email from JSON-LD, page
+metadata and contact links. Review and edit the details, then use **Add venue**
+to save privately to your plan. Importing alone never saves a venue and does
+not change existing venues. No API key or new dependency is required.
+
+The importer fetches one page without executing JavaScript or following contact
+links. Some websites block automated access or omit contact information; manual
+entry remains available. Requests use validated public IP addresses, hostname
+TLS verification, checked redirect destinations, HTTPS on port 443, a 1 MiB
+response limit, socket timeouts and a per-user 15 second cache cooldown. With
+the default local-memory cache the cooldown is per worker. Website HTML is never
+rendered or stored; extracted field values pass through the normal venue form.

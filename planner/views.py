@@ -3,6 +3,9 @@ import io
 import secrets
 from django.core.exceptions import ValidationError
 from .venue_search import venue_search_url
+from .venue_import import import_venue_website, VenueImportError
+from .forms import VenueWebsiteImportForm
+from django.core.cache import cache
 from decimal import Decimal
 
 from django.utils import timezone
@@ -483,10 +486,25 @@ def venue_list(request):
     if request.GET.get("edit"):
         editing_venue = get_object_or_404(Venue, pk=request.GET["edit"], budget=budget)
     venue_form = VenueForm(request.POST or None, instance=editing_venue)
+    import_form = VenueWebsiteImportForm()
+    imported_preview = False
 
     if request.method == "POST":
         action = request.POST.get("action")
-        if action in {"save_venue", "update_venue"}:
+        if action == "import_website":
+            editing_venue = None
+            venue_form = VenueForm()
+            import_form = VenueWebsiteImportForm(request.POST)
+            if import_form.is_valid():
+                try:
+                    if not cache.add(f'venue-import:{request.user.pk}', True, timeout=15):
+                        raise VenueImportError('Please wait a few seconds before importing another website.')
+                    details = import_venue_website(import_form.cleaned_data['website_url'])
+                    venue_form = VenueForm(initial=details)
+                    imported_preview = True
+                except VenueImportError as error:
+                    import_form.add_error('website_url', str(error))
+        elif action in {"save_venue", "update_venue"}:
             editing_venue = None
             if action == "update_venue":
                 editing_venue = get_object_or_404(Venue, pk=request.POST.get("venue_id"), budget=budget)
@@ -507,6 +525,8 @@ def venue_list(request):
         "venues": budget.venues.all(),
         "venue_form": venue_form,
         "editing_venue": editing_venue,
+        "import_form": import_form,
+        "imported_preview": imported_preview,
     })
 
 

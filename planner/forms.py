@@ -175,6 +175,14 @@ class WeddingEventForm(forms.ModelForm):
             self.initial["guests"] = self.instance.guests.values_list("pk", flat=True)
 
 
+class VenueWebsiteImportForm(forms.Form):
+    website_url = forms.URLField(
+        label="Venue website link", max_length=200,
+        widget=forms.URLInput(attrs={"placeholder": "https://www.venue-website.co.uk"}),
+        help_text="Paste the venue’s own website or contact page, then review the suggested details before saving.",
+    )
+
+
 class VenueForm(forms.ModelForm):
     class Meta:
         model = Venue

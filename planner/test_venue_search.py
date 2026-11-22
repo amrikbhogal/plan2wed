@@ -35,7 +35,7 @@ class ExternalVenueSearchTests(TestCase):
         self.assertContains(response, 'Search Google Maps')
         self.assertContains(response, 'Search the web')
         self.assertNotContains(response, 'Search internet venues')
-        self.assertContains(response, 'Add it to your venues')
+        self.assertContains(response, f"{reverse('venue_list')}#venue-import")
 
     def test_unknown_provider_does_not_redirect(self):
         response = self.client.get(self.url, {'external_search': 'https://example.com'})
