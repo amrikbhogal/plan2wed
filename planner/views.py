@@ -23,7 +23,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
 
-from .forms import SeatingTableForm, MemberSignupForm, ShoppingListItemForm, VenueForm, WeddingBudgetForm, WeddingEventForm, WeddingGuestForm
+from .forms import TablePlanRequirementForm, SeatingTableForm, MemberSignupForm, ShoppingListItemForm, VenueForm, WeddingBudgetForm, WeddingEventForm, WeddingGuestForm
 from .forms import ReceiptUploadForm, ReceiptItemFormSet, ShoppingManagementImportForm, ShoppingManagementItemForm
 from .shopping_import import read_shopping_csv
 from .receipts import scan_receipt, receipt_items
@@ -180,7 +180,15 @@ def event_detail(request, event_id):
         event.delete()
         messages.success(request, 'Event deleted from your wedding plan.')
         return redirect("member_portal")
-    return render(request, "planner/event_detail.html", {"event": event})
+    table_plan_form = TablePlanRequirementForm(instance=event)
+    if request.method == "POST" and request.POST.get("action") == "set_table_plan_requirement":
+        table_plan_form = TablePlanRequirementForm(request.POST, instance=event)
+        if table_plan_form.is_valid():
+            event.requires_table_plan = table_plan_form.cleaned_data["requires_table_plan"]
+            event.save(update_fields=["requires_table_plan"])
+            messages.success(request, "Table plan preference updated.")
+            return redirect("event_detail", event_id=event.pk)
+    return render(request, "planner/event_detail.html", {"event": event, "table_plan_form": table_plan_form})
 
 
 @never_cache
@@ -721,6 +729,8 @@ def table_plan(request, event_id):
     if member is None:
         return redirect("member_portal")
     event = get_object_or_404(WeddingEvent, pk=event_id, budget__member=member)
+    if not event.requires_table_plan:
+        return redirect("event_detail", event_id=event.pk)
     editing_table = None
     if request.GET.get("edit"):
         editing_table = get_object_or_404(SeatingTable, pk=request.GET["edit"], event=event)

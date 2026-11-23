@@ -214,6 +214,7 @@ class WeddingEvent(models.Model):
     name = models.CharField(max_length=120)
     description = models.TextField(blank=True)
     event_date = models.DateField(null=True, blank=True)
+    requires_table_plan = models.BooleanField(default=True)
     is_wedding_day = models.BooleanField(default=False, editable=False)
     is_wedding_meal = models.BooleanField(default=False, editable=False)
     other_spent = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])

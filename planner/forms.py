@@ -147,7 +147,25 @@ class WeddingBudgetForm(forms.ModelForm):
         help_texts = {"meal_date": "Leave blank to use the wedding date. You can choose the venue and invite guests once the event is created."}
 
 
-class WeddingEventForm(forms.ModelForm):
+class TablePlanRequirementForm(forms.ModelForm):
+    requires_table_plan = forms.TypedChoiceField(
+        label="Does this event need a table plan?",
+        choices=(("True", "Yes"), ("False", "No")),
+        coerce=lambda value: value == "True",
+        required=False,
+        empty_value=None,
+    )
+
+    def clean_requires_table_plan(self):
+        value = self.cleaned_data["requires_table_plan"]
+        return self.instance.requires_table_plan if value is None else value
+
+    class Meta:
+        model = WeddingEvent
+        fields = ["requires_table_plan"]
+
+
+class WeddingEventForm(TablePlanRequirementForm):
     guests = forms.ModelMultipleChoiceField(
         queryset=WeddingGuest.objects.none(),
         required=False,
@@ -160,7 +178,7 @@ class WeddingEventForm(forms.ModelForm):
 
     class Meta:
         model = WeddingEvent
-        fields = ["name", "description", "event_date", "venue", "guests", "other_spent", "other_pending", "notes"]
+        fields = ["name", "description", "event_date", "venue", "guests", "requires_table_plan", "other_spent", "other_pending", "notes"]
         labels = {
             "name": "Event name",
             "description": "Description",
