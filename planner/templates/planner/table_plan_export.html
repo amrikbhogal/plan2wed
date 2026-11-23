@@ -1,0 +1,16 @@
+{% extends 'planner/base.html' %}
+{% block title %}{{ event.name }} table plan · Plan2Wed{% endblock %}
+{% block content %}
+<main class="page plan-export">
+  <div class="export-actions"><a class="muted" href="{% url 'table_plan' event.pk %}">← Back to table planning</a><div><a class="button" href="{% url 'table_plan_pdf' event.pk %}">Download PDF</a> <button class="button" type="button" onclick="window.print()">Print</button> <a class="button" href="#email-plan">Email PDF</a></div></div>
+  <h1>{{ event.name }} — Table plan</h1>
+  {% if event.event_date %}<p>{{ event.event_date|date:'j F Y' }}</p>{% endif %}
+  <p class="muted export-instructions">Tables and guest names are arranged in three columns on landscape A4 pages. Unseated guests are listed separately.</p>
+  <div class="export-columns">{% for section in sections %}<section class="export-table"><h2>{{ section.name }}</h2><ul>{% for guest in section.guests %}<li>{{ guest }}</li>{% empty %}<li class="muted">No guests seated yet.</li>{% endfor %}</ul></section>{% empty %}<p>No tables or guests to export yet.</p>{% endfor %}</div>
+  <section id="email-plan" class="card email-plan"><h2>Email table plan</h2><p class="muted">Send the PDF as an attachment to the address below.</p><form method="post">{% csrf_token %}{{ email_form.non_field_errors }}<div class="field"><label for="{{ email_form.recipient.id_for_label }}">Recipient email address</label>{{ email_form.recipient }}{{ email_form.recipient.errors }}</div><div class="form-actions"><button class="button" type="submit">Send PDF by email</button></div></form></section>
+</main>
+<style>
+.export-actions{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}.export-actions>div{display:flex;gap:8px;flex-wrap:wrap}.plan-export h1{font-size:32px}.export-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin:28px 0}.export-table{break-inside:avoid;overflow-wrap:anywhere}.export-table h2{font-size:22px;margin:0 0 12px}.export-table ul{list-style:none;margin:0;padding:0}.export-table li{margin:0 0 7px}.email-plan{max-width:560px;scroll-margin-top:90px}@media(max-width:650px){.export-columns{grid-template-columns:1fr}}
+@media print{@page{size:A4 landscape;margin:12mm}body{background:white;color:black}.topbar,.export-actions,.email-plan,.export-instructions,#django-messages,#page-scroll-cue{display:none!important}.plan-export{padding:0;margin:0;max-width:none}.plan-export h1{font-size:23px}.export-columns{display:block;column-count:3;column-gap:12mm;margin-top:8mm}.export-table{display:block;break-inside:avoid;margin-bottom:8mm}.export-table h2{font-size:16px;break-after:avoid}.export-table li{font-size:11px;margin-bottom:4px}.plan-export .muted{color:#444}}
+</style>
+{% endblock %}

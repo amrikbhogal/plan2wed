@@ -274,3 +274,18 @@ TLS verification, checked redirect destinations, HTTPS on port 443, a 1 MiB
 response limit, socket timeouts and a per-user 15 second cache cooldown. With
 the default local-memory cache the cooldown is per worker. Website HTML is never
 rendered or stored; extracted field values pass through the normal venue form.
+
+## Table plan exports
+
+Open an event’s table plan and choose **Export PDF, print or email**. The preview
+provides a PDF download, a print layout and a recipient field for emailing the
+PDF attachment. Exports use landscape A4 with three columns, table names and
+guest names; unseated guests appear separately. Declined guests and guests no
+longer invited to the event are excluded, matching the seating screen. Contact
+details and private notes are not exported.
+
+Export access is limited to the event owner and respects the event’s table
+planning preference. Email sends only after submitting the recipient form and
+uses the configured Django email backend. Install the updated requirements
+(including ReportLab) before deploying this feature. No database migration is
+required.
