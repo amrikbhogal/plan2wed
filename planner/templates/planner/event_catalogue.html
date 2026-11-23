@@ -5,10 +5,36 @@
 <div class="heading-row"><div><a class="muted" href="{% url 'member_portal' %}#events">← Back to your wedding plan</a><div class="eyebrow" style="margin-top:20px">Explore</div><h1>Suggested events</h1><p class="muted">Choose events and shopping ideas that suit your family.</p></div><a class="button" href="{% url 'event_add' %}">Add your own event</a></div>
 <section class="card"><form method="get" class="search"><label for="event-search">Find an event</label><input id="event-search" type="search" name="q" value="{{ query }}" maxlength="160"><button class="button" type="submit">Search</button></form></section>
 <p class="muted">These are optional planning suggestions. Punjabi customs vary between families and are distinct from the Sikh marriage ceremony. Confirm arrangements with your family and Gurdwara where relevant.</p>
-<section class="table-card"><table><thead><tr><th>Event</th><th>About</th><th>Shopping ideas</th><th>Choose</th></tr></thead><tbody>
-{% for template in templates %}<tr{% if template.already_in_plan or template.managed_in_details %} class="event-in-plan"{% endif %}><td><strong>{{ template.name }}</strong></td><td>{{ template.description }}</td><td>{{ template.shopping_suggestions.count }} suggested item{{ template.shopping_suggestions.count|pluralize }}</td><td>{% if template.managed_in_details %}<button class="button" type="button" disabled>Managed in wedding details</button>{% elif template.already_in_plan %}<button class="button" type="button" disabled>Already in your plan</button>{% else %}<a class="button" href="{% url 'event_template_detail' template.pk %}">Review event & checklist</a>{% endif %}</td></tr>{% empty %}<tr><td colspan="4">No suggested events found. You can add your own event or try a different search.</td></tr>{% endfor %}
+<section class="table-card suggested-events"><table><colgroup><col class="event-column"><col class="about-column"><col class="shopping-column"><col class="choose-column"></colgroup><thead><tr><th scope="col">Event</th><th scope="col">About</th><th scope="col">Shopping ideas</th><th scope="col">Choose</th></tr></thead><tbody>
+{% for template in templates %}<tr{% if template.already_in_plan or template.managed_in_details %} class="event-in-plan"{% endif %}><td data-label="Event"><strong>{{ template.name }}</strong></td><td data-label="About">{{ template.description }}</td><td data-label="Shopping ideas">{{ template.shopping_suggestions.count }} suggested item{{ template.shopping_suggestions.count|pluralize }}</td><td data-label="Choose">{% if template.managed_in_details %}<button class="button" type="button" disabled>Managed in wedding details</button>{% elif template.already_in_plan %}<button class="button" type="button" disabled>Already in your plan</button>{% else %}<a class="button" href="{% url 'event_template_detail' template.pk %}">Review event & checklist</a>{% endif %}</td></tr>{% empty %}<tr><td colspan="4">No suggested events found. You can add your own event or try a different search.</td></tr>{% endfor %}
 </tbody></table></section></main>
 <style>
+  .suggested-events table{table-layout:fixed;min-width:0}
+  .suggested-events .event-column{width:19%}
+  .suggested-events .about-column{width:33%}
+  .suggested-events .shopping-column{width:17%}
+  .suggested-events .choose-column{width:31%}
+  .suggested-events th,.suggested-events td{vertical-align:top;overflow-wrap:anywhere}
+  .suggested-events td{line-height:1.6}
+  .suggested-events .button{max-width:100%;white-space:normal;text-align:center;line-height:1.4}
+  @media(min-width:641px) and (max-width:960px){
+    .suggested-events th,.suggested-events td{padding:14px 12px}
+  }
+  @media(max-width:640px){
+    .suggested-events{overflow:visible;background:transparent;border:0}
+    .suggested-events table,.suggested-events tbody{display:block;width:100%}
+    .suggested-events colgroup{display:none}
+    .suggested-events thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+    .suggested-events tbody tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:16px;padding:18px;margin-bottom:14px;background:var(--white);border:1px solid var(--line);border-radius:10px}
+    .suggested-events td{display:block;min-width:0;padding:0;border:0}
+    .suggested-events td[data-label="Event"],.suggested-events td[data-label="About"]{grid-column:1/-1}
+    .suggested-events td[data-label="Event"]{font-size:17px}
+    .suggested-events td[data-label]::before{content:attr(data-label);display:block;margin-bottom:6px;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+    .suggested-events td[data-label="Event"]::before{display:none}
+    .suggested-events td[colspan]{grid-column:1/-1}
+    .suggested-events td .button{width:100%}
+    .suggested-events tr.event-in-plan{background:#f4f4f2}
+  }
   .event-in-plan { background: #f4f4f2; color: #656963; }
   .event-in-plan .button:disabled { background: #e5e6e2; border: 1px solid #d0d2cc; color: #5e625b; cursor: not-allowed; box-shadow: none; }
 </style>
