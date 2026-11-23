@@ -54,3 +54,21 @@ class TablePlanRequirementTests(TestCase):
         self.assertEqual(self.client.post(self.url, {'action': 'set_table_plan_requirement', 'requires_table_plan': 'False'}).status_code, 404)
         self.event.refresh_from_db()
         self.assertTrue(self.event.requires_table_plan)
+
+    def test_dashboard_dropdown_only_lists_events_requiring_tables(self):
+        disabled = self.budget.events.create(name='Picnic', requires_table_plan=False)
+        dashboard_url = reverse('member_portal')
+        response = self.client.get(dashboard_url)
+        self.assertContains(response, self.table_url)
+        self.assertNotContains(response, reverse('table_plan', args=[disabled.pk]))
+        self.assertContains(response, reverse('event_detail', args=[disabled.pk]))
+        self.client.post(self.url, {
+            'action': 'set_table_plan_requirement', 'requires_table_plan': 'False',
+        })
+        response = self.client.get(dashboard_url)
+        self.assertNotContains(response, self.table_url)
+        self.assertContains(response, 'No events need table planning.')
+        self.client.post(self.url, {
+            'action': 'set_table_plan_requirement', 'requires_table_plan': 'True',
+        })
+        self.assertContains(self.client.get(dashboard_url), self.table_url)

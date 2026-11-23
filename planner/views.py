@@ -110,6 +110,7 @@ def member_portal(request):
         "budget": budget,
         "budget_form": budget_form,
         "events": events,
+        "table_planning_events": [event for event in events if event.requires_table_plan],
         "timeline_items": timeline_items,
     })
 
