@@ -29,6 +29,7 @@ class Member(models.Model):
     last_name = models.CharField(max_length=80)
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=30, blank=True)
+    address = models.TextField(max_length=500, blank=True)
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

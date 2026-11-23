@@ -1,0 +1,18 @@
+{% extends 'planner/base.html' %}
+{% block title %}Update member profile · Plan2Wed{% endblock %}
+{% block content %}
+<main class="page dashboard">
+  <div class="heading-row"><div><a class="muted" href="{% url 'member_portal' %}">← My account</a><div class="eyebrow" style="margin-top:20px">Membership</div><h1>Update profile</h1><p class="muted">Keep your member name, phone number and postal address up to date. Update the couple’s details through Wedding details on My account.</p></div></div>
+  <section class="card form-card"><form method="post">{% csrf_token %}{{ form.non_field_errors }}
+    <fieldset class="details-section"><legend>Member details</legend><div class="details-grid">
+      {% for field in form %}{% include 'planner/includes/detail_field.html' with field=field %}{% endfor %}
+    </div></fieldset>
+    <div class="form-actions"><button class="button" type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-save"></use></svg>Save profile</button><a class="status-select" href="{% url 'member_portal' %}">Cancel</a></div>
+  </form></section>
+  <section class="card form-card" aria-labelledby="profile-password-heading">
+    <h2 id="profile-password-heading">Password</h2>
+    <p class="muted">Request a password reset link by email to choose a new password.</p>
+    <a class="status-select" href="{% url 'password_reset' %}">Reset password</a>
+  </section>
+</main>
+{% endblock %}

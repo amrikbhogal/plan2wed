@@ -87,13 +87,28 @@ class MemberSignupForm(forms.ModelForm):
         return cleaned_data
 
 
+class MemberProfileForm(forms.ModelForm):
+    email = forms.EmailField(label="Login email", disabled=True)
+
+    class Meta:
+        model = Member
+        fields = ["first_name", "last_name", "email", "phone", "address"]
+        labels = {"first_name": "First name", "last_name": "Last name", "phone": "Phone number", "address": "Postal address"}
+        widgets = {
+            "first_name": forms.TextInput(attrs={"autocomplete": "given-name"}),
+            "last_name": forms.TextInput(attrs={"autocomplete": "family-name"}),
+            "phone": forms.TelInput(attrs={"autocomplete": "tel", "placeholder": "Optional"}),
+            "address": forms.Textarea(attrs={"rows": 4, "autocomplete": "street-address", "placeholder": "Street address, town or city, postcode and country"}),
+        }
+
+
 class WeddingBudgetForm(forms.ModelForm):
     has_separate_meal = forms.TypedChoiceField(
         label="Will you have a separate meal or reception after the Anand Karaj?",
         choices=[("False", "No / not decided yet"), ("True", "Yes, at a separate venue")],
         coerce=lambda value: value == "True",
         widget=forms.Select(),
-        help_text="Choose Yes to add a Wedding Meal / Reception event. Set the Gurdwara on your Wedding Day event and the banquet hall on the meal event using Edit. Each has its own guests and shopping list. Choosing No later keeps any existing event and its details; you can delete it from Wedding events.",
+        help_text="Choose Yes to add a Reception event. Set the Gurdwara on your Wedding Day event and the banquet hall on the meal event using Edit. Each has its own guests and shopping list. Choosing No later keeps any existing event and its details; you can delete it from Wedding events.",
     )
 
     class Meta:

@@ -38,6 +38,7 @@ urlpatterns = [
     path('reset/complete/', auth_views.PasswordResetCompleteView.as_view(template_name='planner/password_reset_complete.html'), name='password_reset_complete'),
     path('logout/', MemberLogoutView.as_view(), name='logout'),
     path('my-account/', planner_views.member_portal, name='member_portal'),
+    path('my-account/profile/', planner_views.member_profile, name='member_profile'),
     path('my-account/spending-statement/', planner_views.spending_statement, name='spending_statement'),
     path('my-account/guests/', planner_views.guest_list, name='guest_list'),
     path('my-account/shopping/', planner_views.shopping_management, name='shopping_management'),

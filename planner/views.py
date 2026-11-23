@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from .venue_search import venue_search_url
 from .venue_import import import_venue_website, VenueImportError
 from .forms import VenueWebsiteImportForm
+from .forms import MemberProfileForm
 from django.core.cache import cache
 from decimal import Decimal
 
@@ -16,7 +17,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import IntegrityError, transaction
 from django.core.paginator import Paginator
-from django.db.models import Exists, OuterRef, Q
+from django.db.models import BooleanField, Case, Exists, OuterRef, Q, Value, When
 from django.db.models.functions import Lower, Trim
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -111,6 +112,25 @@ def member_portal(request):
         "events": events,
         "timeline_items": timeline_items,
     })
+
+
+@never_cache
+@login_required
+def member_profile(request):
+    member = getattr(request.user, 'member_profile', None)
+    if member is None:
+        return redirect('member_portal')
+    form = MemberProfileForm(request.POST if request.method == 'POST' else None, instance=member)
+    if request.method == 'POST' and form.is_valid():
+        with transaction.atomic():
+            profile = form.save(commit=False)
+            profile.save(update_fields=['first_name', 'last_name', 'phone', 'address'])
+            get_user_model().objects.filter(pk=request.user.pk).update(
+                first_name=profile.first_name, last_name=profile.last_name,
+            )
+        messages.success(request, 'Your member profile has been updated.')
+        return redirect('member_profile')
+    return render(request, 'planner/member_profile.html', {'form': form})
 
 
 @never_cache
@@ -385,20 +405,33 @@ def event_catalogue(request, template_id=None):
     member = getattr(request.user, 'member_profile', None)
     if member is None:
         return redirect('member_portal')
+    budget = getattr(member, 'wedding_budget', None)
+    managed_names = ['anand karaj']
+    if budget and budget.has_separate_meal:
+        managed_names.append('reception')
     if template_id is None:
         planned_events = WeddingEvent.objects.filter(budget__member=member).alias(
             _event_name=Lower(Trim('name')),
         ).filter(
             Q(event_template_id=OuterRef('pk')) | Q(_event_name=Lower(Trim(OuterRef('name')))),
         )
-        templates = EventTemplate.objects.filter(is_published=True).annotate(
+        templates = EventTemplate.objects.filter(is_published=True).alias(
+            _template_name=Lower(Trim('name')),
+        ).annotate(
             already_in_plan=Exists(planned_events),
+            managed_in_details=Case(
+                When(_template_name__in=managed_names, then=Value(True)),
+                default=Value(False), output_field=BooleanField(),
+            ),
         ).prefetch_related('shopping_suggestions')
         query = request.GET.get('q', '').strip()[:160]
         if query:
             templates = templates.filter(Q(name__icontains=query) | Q(description__icontains=query))
         return render(request, 'planner/event_catalogue.html', {'templates': templates, 'query': query})
     template = get_object_or_404(EventTemplate.objects.prefetch_related('shopping_suggestions'), pk=template_id, is_published=True)
+    if template.name.strip().lower() in managed_names:
+        messages.info(request, 'This event is managed through your wedding details. Use your Wedding Day or Reception event to manage guests and shopping.')
+        return redirect('event_catalogue')
     initial = {'items': list(template.shopping_suggestions.values_list('pk', flat=True))}
     if request.GET.get('event', '').isdigit():
         initial['event'] = get_object_or_404(WeddingEvent, pk=request.GET['event'], budget__member=member).pk
