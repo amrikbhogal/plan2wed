@@ -220,7 +220,7 @@ from adding the same named event.
 
 Catalogue suggestions reuse a matching manually added event, preserving its
 date, description, guests, costs, notes and shopping items. Automatic Wedding Day
-and Wedding Meal / Reception entries also reuse matching events. Shared event
+and Reception entries also reuse matching events. Shared event
 catalogue forms reject case/space variants of existing names.
 
 No database migration is needed. Existing duplicates are not merged or deleted;

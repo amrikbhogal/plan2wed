@@ -109,13 +109,15 @@ class WeddingBudget(models.Model):
                     meal = self.events.filter(is_wedding_meal=True).first()
                     if meal is None:
                         meal = events_named(self.events, 'Wedding Meal / Reception').order_by('pk').first()
+                        if meal is None:
+                            meal = events_named(self.events, 'Reception').order_by('pk').first()
                     if meal:
                         self.events.filter(pk=meal.pk).update(
                             is_wedding_meal=True, event_date=self.meal_date or self.wedding_date,
                         )
                     else:
                         self.events.create(
-                            name='Wedding Meal / Reception', is_wedding_meal=True,
+                            name='Reception', is_wedding_meal=True,
                             event_date=self.meal_date or self.wedding_date,
                         )
 

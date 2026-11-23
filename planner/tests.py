@@ -107,7 +107,7 @@ class WeddingDayTests(TestCase):
         self.assertEqual(meal.event_date, date(2027, 6, 12))
         response = self.client.get(reverse('member_portal'))
         self.assertContains(response, 'Will you have a separate meal or reception')
-        self.assertContains(response, 'Wedding Meal / Reception')
+        self.assertContains(response, 'Reception')
         self.assertEqual(len(response.context['timeline_items']), 2)
         self.assertContains(self.client.get(reverse('guest_list')), meal.name)
         self.assertEqual(self.client.get(reverse('event_shopping_list', args=[meal.pk])).status_code, 200)

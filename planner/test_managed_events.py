@@ -45,3 +45,34 @@ class ManagedSuggestedEventTests(TestCase):
 
     def test_help_text_uses_reception_wording(self):
         self.assertTrue(WeddingBudgetForm().fields['has_separate_meal'].help_text.startswith('Choose Yes to add a Reception event.'))
+
+    def test_separate_reception_reuses_existing_event(self):
+        reception = self.budget.events.create(name='Reception')
+        self.budget.has_separate_meal = True
+        self.budget.save()
+        reception.refresh_from_db()
+        self.assertTrue(reception.is_wedding_meal)
+        self.assertEqual(self.budget.events.filter(is_wedding_meal=True).get(), reception)
+        self.assertEqual(self.budget.events.filter(name='Reception').count(), 1)
+
+    def test_rename_all_legacy_reception_name_variants(self):
+        from importlib import import_module
+        from django.apps import apps
+        from django.db import connection
+        from .models import WeddingEvent
+        names = ['Wedding Meal /Reception', 'Wedding Meal/Reception',
+                 'Wedding Meal / Reception', 'wedding meal / reception',
+                 ' Wedding   Meal/ RECEPTION ']
+        events = WeddingEvent.objects.bulk_create([
+            WeddingEvent(budget=self.budget, name=name, notes='Keep my notes') for name in names
+        ])
+        custom = self.budget.events.create(name='Family meal')
+        migration = import_module('planner.migrations.0025_normalize_reception_names')
+        from types import SimpleNamespace
+        migration.rename_reception_variants(apps, SimpleNamespace(connection=connection))
+        for event in events:
+            event.refresh_from_db()
+            self.assertEqual(event.name, 'Reception')
+            self.assertEqual(event.notes, 'Keep my notes')
+        custom.refresh_from_db()
+        self.assertEqual(custom.name, 'Family meal')
